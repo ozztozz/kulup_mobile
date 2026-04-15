@@ -97,7 +97,21 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Kulup Dashboard"),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                "assets/images/logo.png",
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text("Kulup Dashboard"),
+          ],
+        ),
         actions: [
           IconButton(
             onPressed: _loadData,
@@ -113,22 +127,29 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.26),
-              theme.scaffoldBackgroundColor,
-            ],
+          image: const DecorationImage(
+            image: AssetImage("assets/images/background.jpg"),
+            fit: BoxFit.cover,
           ),
         ),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(child: Text(_error!))
-                : ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                theme.scaffoldBackgroundColor.withValues(alpha: 0.90),
+                theme.scaffoldBackgroundColor.withValues(alpha: 0.97),
+              ],
+            ),
+          ),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text(_error!))
+                  : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
                       Container(
                         padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
                         decoration: BoxDecoration(
@@ -238,6 +259,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   ),
+        ),
       ),
     );
   }
