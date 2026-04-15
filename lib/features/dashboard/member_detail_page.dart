@@ -1,0 +1,272 @@
+import "package:flutter/material.dart";
+
+class MemberDetailPage extends StatelessWidget {
+  const MemberDetailPage({super.key, required this.member});
+
+  final Map<String, dynamic> member;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final team = Map<String, dynamic>.from(
+      (member["team"] as Map?) ?? <String, dynamic>{},
+    );
+
+    final fullName = "${member["name"] ?? ""} ${member["surname"] ?? ""}".trim();
+    final school = member["school"]?.toString() ?? "";
+    final birthdate = member["birthdate"]?.toString() ?? "";
+    final joinedDate = member["joined_date"]?.toString() ?? "";
+    final notes = member["notes"]?.toString() ?? "";
+    final isActive = member["is_active"] == true;
+    final teamName = team["name"]?.toString() ?? "";
+    final photoUrl = member["photo_url"]?.toString() ?? "";
+    final email = member["email"]?.toString() ?? "";
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Uye Detayi"),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.32),
+              theme.scaffoldBackgroundColor,
+            ],
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.chevron_left,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    Text(
+                      "Uyelere Don",
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              fullName.isEmpty ? "Uye" : fullName,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              teamName.isEmpty ? "TAKIM" : teamName.toUpperCase(),
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Duzenleme yakinda eklenecek.")),
+                );
+              },
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text("Duzenle"),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Silme islemi yakinda eklenecek.")),
+                );
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: const Text("Sil"),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
+                child: Column(
+                  children: [
+                    _MemberAvatar(
+                      photoUrl: photoUrl,
+                      initials: _initials(member),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      fullName.isEmpty ? "Uye" : fullName,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: isActive
+                            ? Colors.green.withValues(alpha: 0.18)
+                            : theme.colorScheme.errorContainer,
+                      ),
+                      child: Text(
+                        isActive ? "Aktif" : "Pasif",
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: isActive
+                              ? Colors.green.shade900
+                              : theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _InfoCard(
+              title: "Iletisim",
+              value: email.isEmpty ? "E-posta bilgisi yok" : email,
+              icon: Icons.email_outlined,
+            ),
+            _InfoCard(
+              title: "Kisisel Bilgiler",
+              value:
+                  "Dogum Tarihi: ${birthdate.isEmpty ? "-" : birthdate}\nOkul: ${school.isEmpty ? "-" : school}\nKatilim Tarihi: ${joinedDate.isEmpty ? "-" : joinedDate}\nTakim: ${teamName.isEmpty ? "-" : teamName}",
+              multiline: true,
+              icon: Icons.badge_outlined,
+            ),
+            _InfoCard(
+              title: "Notlar",
+              value: notes.isEmpty ? "-" : notes,
+              multiline: true,
+              icon: Icons.sticky_note_2_outlined,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _initials(Map<String, dynamic> row) {
+    final first = row["name"]?.toString().trim() ?? "";
+    final last = row["surname"]?.toString().trim() ?? "";
+    final f = first.isEmpty ? "" : first[0].toUpperCase();
+    final l = last.isEmpty ? "" : last[0].toUpperCase();
+    final value = "$f$l";
+    return value.isEmpty ? "U" : value;
+  }
+}
+
+class _MemberAvatar extends StatelessWidget {
+  const _MemberAvatar({required this.photoUrl, required this.initials});
+
+  final String photoUrl;
+  final String initials;
+
+  @override
+  Widget build(BuildContext context) {
+    if (photoUrl.isEmpty) {
+      return CircleAvatar(
+        radius: 44,
+        child: Text(
+          initials,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 44,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: ClipOval(
+        child: Image.network(
+          photoUrl,
+          width: 88,
+          height: 88,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            return Center(
+              child: Text(
+                initials,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    required this.title,
+    required this.value,
+    this.multiline = false,
+    this.icon,
+  });
+
+  final String title;
+  final String value;
+  final bool multiline;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              value,
+              maxLines: multiline ? null : 1,
+              overflow: multiline ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
