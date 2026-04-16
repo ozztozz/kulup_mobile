@@ -1,9 +1,18 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_nav_drawer.dart";
+import "../../core/app_top_bar.dart";
+import "../../core/team_logo_avatar.dart";
+import "team_list_page.dart";
+import "../payments/payment_list_page.dart";
+import "training_weekly_page.dart";
+import "../questionnaire/questionnaire_list_page.dart";
+
 class MemberDetailPage extends StatelessWidget {
-  const MemberDetailPage({super.key, required this.member});
+  const MemberDetailPage({super.key, required this.member, required this.onLogout});
 
   final Map<String, dynamic> member;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -23,23 +32,53 @@ class MemberDetailPage extends StatelessWidget {
     final email = member["email"]?.toString() ?? "";
 
     return Scaffold(
-      appBar: AppBar(
+      drawer: AppNavDrawer(
+        fullName: fullName.isEmpty ? "Alpha" : fullName,
+        currentSection: AppNavSection.teams,
+        onHome: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
+        onTeams: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => TeamListPage(onLogout: onLogout),
+            ),
+          );
+        },
+        onPayments: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PaymentListPage(onLogout: onLogout),
+            ),
+          );
+        },
+        onTrainings: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TrainingWeeklyPage(onLogout: onLogout),
+            ),
+          );
+        },
+        onQuestionnaires: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => QuestionnaireListPage(onLogout: onLogout),
+            ),
+          );
+        },
+        onLogout: onLogout,
+      ),
+      appBar: AppTopBar(
         title: const Text("Uye Detayi"),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.32),
-              theme.scaffoldBackgroundColor,
-            ],
-          ),
-        ),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
             InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () => Navigator.of(context).maybePop(),
@@ -92,8 +131,8 @@ class MemberDetailPage extends StatelessWidget {
             const SizedBox(height: 8),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
+                backgroundColor: theme.colorScheme.secondary,
+                foregroundColor: theme.colorScheme.onSecondary,
               ),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -127,18 +166,37 @@ class MemberDetailPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         color: isActive
-                            ? Colors.green.withValues(alpha: 0.18)
+                            ? theme.colorScheme.tertiaryContainer
                             : theme.colorScheme.errorContainer,
                       ),
                       child: Text(
                         isActive ? "Aktif" : "Pasif",
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: isActive
-                              ? Colors.green.shade900
+                              ? theme.colorScheme.onTertiaryContainer
                               : theme.colorScheme.onErrorContainer,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        TeamLogoAvatar(
+                          team: team,
+                          size: 34,
+                          borderRadius: 10,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            teamName.isEmpty ? "Takim" : teamName,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -163,8 +221,7 @@ class MemberDetailPage extends StatelessWidget {
               multiline: true,
               icon: Icons.sticky_note_2_outlined,
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

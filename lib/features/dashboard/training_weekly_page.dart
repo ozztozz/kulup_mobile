@@ -1,9 +1,17 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_nav_drawer.dart";
+import "../../core/app_top_bar.dart";
 import "club_service.dart";
+import "team_list_page.dart";
+import "../manage/training_create_page.dart";
+import "../payments/payment_list_page.dart";
+import "../questionnaire/questionnaire_list_page.dart";
 
 class TrainingWeeklyPage extends StatefulWidget {
-  const TrainingWeeklyPage({super.key});
+  const TrainingWeeklyPage({super.key, required this.onLogout});
+
+  final VoidCallback onLogout;
 
   @override
   State<TrainingWeeklyPage> createState() => _TrainingWeeklyPageState();
@@ -11,6 +19,7 @@ class TrainingWeeklyPage extends StatefulWidget {
 
 class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
   final ClubService _clubService = ClubService();
+  final ScrollController _calendarScrollController = ScrollController();
 
   bool _isLoading = true;
   String? _error;
@@ -26,20 +35,16 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
     7: "Pazar",
   };
 
-  static const List<Color> _dayHeaderStartColors = <Color>[
-    Color(0xFF71B2F2),
-    Color(0xFF63B8D8),
-    Color(0xFF8AB4F8),
-    Color(0xFF72A1FF),
-    Color(0xFF79B0E2),
-    Color(0xFF61C7D8),
-    Color(0xFF8FAEE8),
-  ];
-
   @override
   void initState() {
     super.initState();
     _loadTrainings();
+  }
+
+  @override
+  void dispose() {
+    _calendarScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTrainings() async {
@@ -55,6 +60,9 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
       }
       setState(() {
         _trainings = trainings;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusCurrentDay();
       });
     } catch (e) {
       if (!mounted) {
@@ -101,10 +109,38 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
     }
 
     for (final rows in grouped.values) {
-      rows.sort((a, b) => _timeOnly(a).compareTo(_timeOnly(b)));
+      rows.sort((a, b) => _startMinutes(a).compareTo(_startMinutes(b)));
     }
 
     return grouped;
+  }
+
+  int _startMinutes(Map<String, dynamic> row, {String key = "time"}) {
+    final value = _timeOnly(row, key: key);
+    final parts = value.split(":");
+    if (parts.length < 2) {
+      return 24 * 60;
+    }
+    return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
+  }
+
+  void _focusCurrentDay() {
+    if (!_calendarScrollController.hasClients) {
+      return;
+    }
+
+    const columnWidth = 164.0;
+    const columnGap = 8.0;
+    final todayIndex = DateTime.now().weekday - 1;
+    final rawOffset = todayIndex * (columnWidth + columnGap);
+    final maxOffset = _calendarScrollController.position.maxScrollExtent;
+    final targetOffset = rawOffset.clamp(0.0, maxOffset);
+
+    _calendarScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   String _timeOnly(Map<String, dynamic> row, {String key = "time"}) {
@@ -118,75 +154,87 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
     return value;
   }
 
-  int _minutesBetween(String start, String end) {
-    final s = start.split(":");
-    final e = end.split(":");
-    if (s.length < 2 || e.length < 2) {
-      return 0;
+  List<int> _calendarWeekdays() => const <int>[1, 2, 3, 4, 5, 6, 7];
+
+  Color _dayColor(int day) {
+    const colors = <Color>[
+      Color(0xFF3A3D55),
+      Color(0xFF7E8CAA),
+      Color(0xFFA5BBBE),
+      Color(0xFF3A3D55),
+      Color(0xFF7E8CAA),
+      Color(0xFFA5BBBE),
+      Color(0xFF3A3D55),
+    ];
+
+    if (day < 1 || day > 7) {
+      return colors.first;
     }
-    final sMinutes = (int.tryParse(s[0]) ?? 0) * 60 + (int.tryParse(s[1]) ?? 0);
-    final eMinutes = (int.tryParse(e[0]) ?? 0) * 60 + (int.tryParse(e[1]) ?? 0);
-    final diff = eMinutes - sMinutes;
-    return diff > 0 ? diff : 0;
+
+    return colors[day - 1];
   }
 
-  List<Map<String, dynamic>> _upcomingTrainings(Map<int, List<Map<String, dynamic>>> grouped) {
-    final rows = <Map<String, dynamic>>[];
-    for (final key in grouped.keys.toList()..sort()) {
-      rows.addAll(grouped[key] ?? <Map<String, dynamic>>[]);
+  Future<void> _openCreateTraining() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TrainingCreatePage(onLogout: widget.onLogout),
+      ),
+    );
+    if (created == true && mounted) {
+      await _loadTrainings();
     }
-    return rows.take(3).toList();
-  }
-
-  Map<String, dynamic> _teamSummary() {
-    final byTeam = <String, int>{};
-    var totalMinutes = 0;
-
-    for (final row in _trainings) {
-      final team = Map<String, dynamic>.from((row["team"] as Map?) ?? <String, dynamic>{});
-      final teamName = team["name"]?.toString().trim();
-      if (teamName != null && teamName.isNotEmpty) {
-        byTeam[teamName] = (byTeam[teamName] ?? 0) + 1;
-      }
-
-      totalMinutes += _minutesBetween(
-        _timeOnly(row, key: "time"),
-        _timeOnly(row, key: "end_time"),
-      );
-    }
-
-    return <String, dynamic>{
-      "counts": byTeam,
-      "minutes": totalMinutes,
-    };
-  }
-
-  List<String> _locations() {
-    final set = <String>{};
-    for (final row in _trainings) {
-      final location = row["location"]?.toString().trim() ?? "";
-      if (location.isNotEmpty) {
-        set.add(location.toUpperCase());
-      }
-    }
-    return set.toList()..sort();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final grouped = _groupedTrainings();
-    final dayKeys = grouped.keys.toList()..sort();
-    final upcoming = _upcomingTrainings(grouped);
-    final teamSummary = _teamSummary();
-    final teamCounts = (teamSummary["counts"] as Map<String, int>? ?? <String, int>{}).entries.toList();
-    final totalMinutes = teamSummary["minutes"] as int? ?? 0;
-    final locations = _locations();
 
     return Scaffold(
-      appBar: AppBar(
+      drawer: AppNavDrawer(
+        fullName: "Alpha",
+        currentSection: AppNavSection.trainings,
+        onHome: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
+        onTeams: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TeamListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onPayments: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PaymentListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onTrainings: () {
+          Navigator.of(context).pop();
+        },
+        onQuestionnaires: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => QuestionnaireListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onLogout: widget.onLogout,
+      ),
+      appBar: AppTopBar(
         title: const Text("Haftalik Antrenman Programi"),
         actions: [
+          IconButton(
+            onPressed: _openCreateTraining,
+            icon: const Icon(Icons.add),
+            tooltip: "Yeni antrenman",
+          ),
           IconButton(
             onPressed: _loadTrainings,
             icon: const Icon(Icons.refresh),
@@ -194,324 +242,232 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
-              theme.scaffoldBackgroundColor,
-            ],
-          ),
-        ),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(child: Text(_error!))
-                : RefreshIndicator(
-                    onRefresh: _loadTrainings,
-                    child: dayKeys.isEmpty
-                        ? ListView(
-                            children: const [
-                              SizedBox(height: 200),
-                              Center(child: Text("Antrenman bulunamadi.")),
-                            ],
-                          )
-                        : ListView(
-                            padding: const EdgeInsets.all(16),
-                            children: [
-                              Text(
-                                "Haftalik Antrenman\nProgrami",
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text(_error!))
+              : RefreshIndicator(
+                  onRefresh: _loadTrainings,
+                  child: _trainings.isEmpty
+                      ? ListView(
+                          children: const [
+                            SizedBox(height: 200),
+                            Center(child: Text("Antrenman bulunamadi.")),
+                          ],
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            Text(
+                              "Haftalik Takvim",
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
                               ),
-                              const SizedBox(height: 16),
-                              _SummarySurfaceCard(
-                                borderColor: const Color(0xFF00A8FF),
-                                title: "Siradaki 3 Antrenman",
-                                child: Column(
-                                  children: upcoming.map((training) {
-                                    final team = Map<String, dynamic>.from(
-                                      (training["team"] as Map?) ?? <String, dynamic>{},
-                                    );
-                                    final teamName = team["name"]?.toString() ?? "TAKIM";
-                                    final location =
-                                        (training["location"]?.toString() ?? "").toUpperCase();
-                                    final startTime = _timeOnly(training, key: "time");
-                                    final endTime = _timeOnly(training, key: "end_time");
-                                    final day = _dayValue(training);
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "Gunleri yatay takvimde goruntuleyin.",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 460,
+                              child: SingleChildScrollView(
+                                controller: _calendarScrollController,
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: _calendarWeekdays().map((day) {
+                                    final dayRows = grouped[day] ?? <Map<String, dynamic>>[];
+                                    final dayTitle = _dayLabel(day, dayRows);
+                                    final isToday = DateTime.now().weekday == day;
+                                    final sabahRows = dayRows
+                                        .where((row) => _startMinutes(row, key: "time") < 12 * 60)
+                                        .toList();
+                                    final aksamRows = dayRows
+                                        .where((row) => _startMinutes(row, key: "time") >= 12 * 60)
+                                        .toList();
 
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: Row(
-                                        children: [
-                                          _MiniDayBadge(
-                                            label: _dayLabel(day, <Map<String, dynamic>>[training]),
+                                    return Container(
+                                      width: 164,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      child: Card(
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                          side: BorderSide(
+                                            color: isToday
+                                                ? _dayColor(day)
+                                                : theme.colorScheme.outlineVariant,
+                                            width: isToday ? 1.4 : 1,
                                           ),
-                                          const SizedBox(width: 8),
-                                          SizedBox(
-                                            width: 84,
-                                            child: Text(
-                                              "$startTime -\n$endTime",
-                                              style: theme.textTheme.titleSmall,
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Text(
-                                              "$teamName${location.isEmpty ? "" : "  $location"}",
-                                              style: theme.textTheme.bodyLarge?.copyWith(
-                                                color: theme.colorScheme.onSurfaceVariant,
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    decoration: BoxDecoration(
+                                                      color: _dayColor(day),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Expanded(
+                                                    child: Text(
+                                                      dayTitle,
+                                                      style: theme.textTheme.labelLarge?.copyWith(
+                                                        fontWeight: FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                isToday ? "Bugun" : "${dayRows.length} ders",
+                                                style: theme.textTheme.labelSmall?.copyWith(
+                                                  color: theme.colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Expanded(
+                                                child: Column(
+                                                  children: [
+                                                    Expanded(
+                                                      child: _PeriodSection(
+                                                        label: "Sabah",
+                                                        rows: sabahRows,
+                                                        dayColor: _dayColor(day),
+                                                        sectionTint: theme.colorScheme.primary.withValues(
+                                                          alpha: 0.1,
+                                                        ),
+                                                        timeOnly: _timeOnly,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 6),
+                                                    Expanded(
+                                                      child: _PeriodSection(
+                                                        label: "Aksam",
+                                                        rows: aksamRows,
+                                                        dayColor: _dayColor(day),
+                                                        sectionTint: theme.colorScheme.tertiary.withValues(
+                                                          alpha: 0.12,
+                                                        ),
+                                                        timeOnly: _timeOnly,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     );
                                   }).toList(),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              _SummarySurfaceCard(
-                                borderColor: const Color(0xFF5E6A84),
-                                title: "Takima Gore Antrenmanlar",
-                                child: Column(
-                                  children: [
-                                    for (final row in teamCounts)
-                                      Padding(
-                                        padding: const EdgeInsets.only(bottom: 6),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                row.key.toUpperCase(),
-                                                style: theme.textTheme.titleSmall,
-                                              ),
-                                            ),
-                                            Text("${row.value} antrenman"),
-                                          ],
-                                        ),
-                                      ),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: Text(
-                                        "$totalMinutes dk",
-                                        style: theme.textTheme.titleSmall,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              _SummarySurfaceCard(
-                                borderColor: const Color(0xFFFF8A00),
-                                title: "Antrenman Lokasyonlari",
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: locations
-                                      .map(
-                                        (location) => Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFFF8A00),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Text(
-                                            location,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              ...dayKeys.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final day = entry.value;
-                                final dayRows = grouped[day] ?? <Map<String, dynamic>>[];
-                                final dayTitle = _dayLabel(day, dayRows);
-                                final startColor =
-                                    _dayHeaderStartColors[index % _dayHeaderStartColors.length];
+                            ),
+                              ],
+                            ),
+                    ),
+    );
+  }
+}
 
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 10,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(14),
-                                            topRight: Radius.circular(14),
-                                          ),
-                                          gradient: LinearGradient(
-                                            colors: <Color>[startColor, const Color(0xFF0A8BC7)],
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              dayTitle,
-                                              style: theme.textTheme.titleMedium?.copyWith(
-                                                color: Colors.black.withValues(alpha: 0.9),
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                            const Spacer(),
-                                            Container(
-                                              width: 30,
-                                              height: 26,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withValues(alpha: 0.92),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: const Icon(Icons.add, size: 18),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Column(
-                                          children: dayRows.map((training) {
-                                            final team = Map<String, dynamic>.from(
-                                              (training["team"] as Map?) ?? <String, dynamic>{},
-                                            );
-                                            final teamName =
-                                                (team["name"]?.toString() ?? "TAKIM").toUpperCase();
-                                            final startTime = _timeOnly(training, key: "time");
-                                            final endTime = _timeOnly(training, key: "end_time");
-                                            final location =
-                                                (training["location"]?.toString() ?? "").toUpperCase();
+class _PeriodHeader extends StatelessWidget {
+  const _PeriodHeader({required this.label, required this.count});
 
-                                            return Container(
-                                              margin: const EdgeInsets.only(bottom: 10),
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 8,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.circular(10),
-                                                color: theme.colorScheme.surfaceContainerLow,
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 98,
-                                                    child: Text(
-                                                      "$startTime - $endTime",
-                                                      style: theme.textTheme.titleSmall,
-                                                    ),
-                                                  ),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          teamName,
-                                                          style: theme.textTheme.titleSmall,
-                                                        ),
-                                                        if (location.isNotEmpty)
-                                                          Text(
-                                                            location,
-                                                            style:
-                                                                theme.textTheme.bodySmall?.copyWith(
-                                                                  color: theme.colorScheme
-                                                                      .onSurfaceVariant,
-                                                                ),
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  const Icon(Icons.edit_outlined, size: 18),
-                                                  const SizedBox(width: 6),
-                                                  const Icon(Icons.delete_outline, size: 18),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                  ),
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            "($count)",
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SummarySurfaceCard extends StatelessWidget {
-  const _SummarySurfaceCard({
-    required this.title,
-    required this.child,
-    required this.borderColor,
+class _PeriodSection extends StatelessWidget {
+  const _PeriodSection({
+    required this.label,
+    required this.rows,
+    required this.dayColor,
+    required this.sectionTint,
+    required this.timeOnly,
   });
 
-  final String title;
-  final Widget child;
-  final Color borderColor;
+  final String label;
+  final List<Map<String, dynamic>> rows;
+  final Color dayColor;
+  final Color sectionTint;
+  final String Function(Map<String, dynamic>, {String key}) timeOnly;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: sectionTint,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outline, width: 1.1),
       ),
       child: Column(
         children: [
-          Container(
-            height: 4,
-            decoration: BoxDecoration(
-              color: borderColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 10),
-                child,
-              ],
-            ),
+          _PeriodHeader(label: label, count: rows.length),
+          const SizedBox(height: 2),
+          Expanded(
+            child: rows.isEmpty
+                ? Center(
+                    child: Text(
+                      "Bos",
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: rows.length,
+                    padding: EdgeInsets.zero,
+                    physics: const ClampingScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return _TrainingCompactCard(
+                        training: rows[index],
+                        dayColor: dayColor,
+                        timeOnly: timeOnly,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -519,26 +475,62 @@ class _SummarySurfaceCard extends StatelessWidget {
   }
 }
 
-class _MiniDayBadge extends StatelessWidget {
-  const _MiniDayBadge({required this.label});
+class _TrainingCompactCard extends StatelessWidget {
+  const _TrainingCompactCard({
+    required this.training,
+    required this.dayColor,
+    required this.timeOnly,
+  });
 
-  final String label;
+  final Map<String, dynamic> training;
+  final Color dayColor;
+  final String Function(Map<String, dynamic>, {String key}) timeOnly;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final team = Map<String, dynamic>.from((training["team"] as Map?) ?? <String, dynamic>{});
+    final teamName = (team["name"]?.toString() ?? "TAKIM").toUpperCase();
+    final startTime = timeOnly(training, key: "time");
+    final endTime = timeOnly(training, key: "end_time");
+    final location = (training["location"]?.toString() ?? "").toUpperCase();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFFFF6E6E),
-        borderRadius: BorderRadius.circular(6),
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: dayColor.withValues(alpha: 0.35), width: 1.0),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "$startTime-$endTime",
+            style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            teamName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          if (location.isNotEmpty)
+            Text(
+              location,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
       ),
     );
   }

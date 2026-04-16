@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Takim ve uye fotograflari eklemek icin kameraya erisim gerekir.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Takim ve uye fotograflari secmek icin galeriye erisim gerekir.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Secilen fotograflari uygulamada kullanmak icin erisim gerekir.</string>
 </dict>
 </plist>

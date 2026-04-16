@@ -1,12 +1,21 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_nav_drawer.dart";
+import "../../core/app_top_bar.dart";
+import "../../core/team_logo_avatar.dart";
 import "club_service.dart";
+import "../manage/member_create_page.dart";
 import "member_detail_page.dart";
+import "../payments/payment_list_page.dart";
+import "team_list_page.dart";
+import "training_weekly_page.dart";
+import "../questionnaire/questionnaire_list_page.dart";
 
 class TeamDetailPage extends StatefulWidget {
-  const TeamDetailPage({super.key, required this.team});
+  const TeamDetailPage({super.key, required this.team, required this.onLogout});
 
   final Map<String, dynamic> team;
+  final VoidCallback onLogout;
 
   @override
   State<TeamDetailPage> createState() => _TeamDetailPageState();
@@ -73,9 +82,55 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
     final description = widget.team["description"]?.toString() ?? "";
 
     return Scaffold(
-      appBar: AppBar(
+      drawer: AppNavDrawer(
+        fullName: "Alpha",
+        currentSection: AppNavSection.teams,
+        onHome: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
+        onTeams: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => TeamListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onPayments: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PaymentListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onTrainings: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TrainingWeeklyPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onQuestionnaires: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => QuestionnaireListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onLogout: widget.onLogout,
+      ),
+      appBar: AppTopBar(
         title: Text(teamName),
         actions: [
+          IconButton(
+            onPressed: _openCreateMember,
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+            tooltip: "Yeni uye",
+          ),
           IconButton(
             onPressed: _loadMembers,
             icon: const Icon(Icons.refresh),
@@ -83,26 +138,15 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.22),
-              theme.scaffoldBackgroundColor,
-            ],
-          ),
-        ),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(child: Text(_error!))
-                : RefreshIndicator(
-                    onRefresh: _loadMembers,
-                    child: ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text(_error!))
+              : RefreshIndicator(
+                  onRefresh: _loadMembers,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
                         if (description.isNotEmpty)
                           Card(
                             child: Padding(
@@ -123,17 +167,10 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                                 padding: const EdgeInsets.fromLTRB(14, 14, 12, 12),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 38,
-                                      height: 38,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFD6ECFA),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(
-                                        Icons.group_outlined,
-                                        color: theme.colorScheme.primary,
-                                      ),
+                                    TeamLogoAvatar(
+                                      team: widget.team,
+                                      size: 38,
+                                      borderRadius: 10,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -145,8 +182,8 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                                       ),
                                     ),
                                     TextButton.icon(
-                                      onPressed: () {},
-                                      icon: const Text("Tumunu Goruntule"),
+                                      onPressed: _openCreateMember,
+                                      icon: const Text("Uye Ekle"),
                                       label: const Icon(Icons.chevron_right),
                                     ),
                                   ],
@@ -171,7 +208,10 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                                     onTap: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (_) => MemberDetailPage(member: member),
+                                          builder: (_) => MemberDetailPage(
+                                            member: member,
+                                            onLogout: widget.onLogout,
+                                          ),
                                         ),
                                       );
                                     },
@@ -182,9 +222,22 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                         ),
                       ],
                     ),
-                  ),
+                ),
+    );
+  }
+
+  Future<void> _openCreateMember() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => MemberCreatePage(
+          team: widget.team,
+          onLogout: widget.onLogout,
+        ),
       ),
     );
+    if (created == true && mounted) {
+      await _loadMembers();
+    }
   }
 }
 
@@ -301,9 +354,9 @@ class _MemberSmallAvatarFallback extends StatelessWidget {
       width: 68,
       height: 68,
       decoration: BoxDecoration(
-        color: const Color(0xFFBFE0F6),
+        color: theme.colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF98CDEF)),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Center(
         child: Text(

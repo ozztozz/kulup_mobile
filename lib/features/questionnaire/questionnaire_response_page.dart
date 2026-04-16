@@ -1,12 +1,19 @@
 import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 
+import "../../core/app_nav_drawer.dart";
+import "../../core/app_top_bar.dart";
 import "../dashboard/club_service.dart";
+import "../dashboard/team_list_page.dart";
+import "../payments/payment_list_page.dart";
+import "../dashboard/training_weekly_page.dart";
+import "questionnaire_list_page.dart";
 
 class QuestionnaireResponsePage extends StatefulWidget {
-  const QuestionnaireResponsePage({super.key, required this.row});
+  const QuestionnaireResponsePage({super.key, required this.row, required this.onLogout});
 
   final Map<String, dynamic> row;
+  final VoidCallback onLogout;
 
   @override
   State<QuestionnaireResponsePage> createState() => _QuestionnaireResponsePageState();
@@ -189,23 +196,53 @@ class _QuestionnaireResponsePageState extends State<QuestionnaireResponsePage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      drawer: AppNavDrawer(
+        fullName: memberName.isEmpty ? "Alpha" : memberName,
+        currentSection: AppNavSection.questionnaires,
+        onHome: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
+        onTeams: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TeamListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onPayments: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PaymentListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onTrainings: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TrainingWeeklyPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onQuestionnaires: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => QuestionnaireListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onLogout: widget.onLogout,
+      ),
+      appBar: AppTopBar(
         title: Text(_questionnaire["title"]?.toString() ?? "Anket Cevapla"),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
-              theme.scaffoldBackgroundColor,
-            ],
-          ),
-        ),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -247,8 +284,7 @@ class _QuestionnaireResponsePageState extends State<QuestionnaireResponsePage> {
                     )
                   : const Text("Cevaplari Gonder"),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

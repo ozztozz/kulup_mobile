@@ -73,32 +73,21 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.38),
-              theme.scaffoldBackgroundColor,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                           Center(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(14),
@@ -111,10 +100,10 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Text("Kulup Mobile", style: theme.textTheme.headlineSmall),
+                          Text("Alpha", style: theme.textTheme.headlineSmall),
                           const SizedBox(height: 6),
                           Text(
-                            "Django API ile giris yap",
+                            "E posta ile giriş yap",
                             style: theme.textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 16),
@@ -140,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return "Sifre gerekli";
+                                return "Şifre gerekli";
                               }
                               return null;
                             },
@@ -169,10 +158,9 @@ class _LoginPageState extends State<LoginPage> {
                                     height: 18,
                                     child: CircularProgressIndicator(strokeWidth: 2),
                                   )
-                                : const Text("Giris yap"),
+                                : const Text("Giriş yap"),
                           ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
                 ),

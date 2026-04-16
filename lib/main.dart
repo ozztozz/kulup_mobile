@@ -1,5 +1,4 @@
 import "package:flutter/material.dart";
-
 import "features/auth/auth_service.dart";
 import "features/auth/login_page.dart";
 import "features/dashboard/dashboard_page.dart";
@@ -14,13 +13,46 @@ class KulupApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const paletteNavy = Color(0xFF3A3D55);
+    const paletteNavyStrong = Color(0xFF2F3248);
+    const paletteSlate = Color(0xFF7E8CAA);
+    const paletteTeal = Color(0xFFA5BBBE);
+    const paletteMist = Color(0xFFE6EBEA);
+
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: paletteSlate,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: paletteNavy,
+      onPrimary: Colors.white,
+      primaryContainer: paletteSlate.withValues(alpha: 0.24),
+      onPrimaryContainer: paletteNavy,
+      secondary: paletteSlate,
+      onSecondary: Colors.white,
+      secondaryContainer: paletteSlate.withValues(alpha: 0.2),
+      onSecondaryContainer: paletteNavy,
+      tertiary: paletteTeal,
+      onTertiary: paletteNavy,
+      tertiaryContainer: paletteTeal.withValues(alpha: 0.26),
+      onTertiaryContainer: paletteNavy,
+      surface: paletteMist,
+      onSurface: paletteNavyStrong,
+      onSurfaceVariant: const Color(0xFF4F5B70),
+      surfaceContainerLowest: Colors.white,
+      surfaceContainerLow: const Color(0xFFF2F5F5),
+      surfaceContainer: const Color(0xFFE9EDED),
+      outline: const Color(0xFF8E9AAC),
+      outlineVariant: const Color(0xFFB8C1CC),
+    );
+
     final base = ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0E5A78)),
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: colorScheme.surface,
       useMaterial3: true,
     );
 
     return MaterialApp(
-      title: "Kulup Mobile",
+      title: "Alpha",
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return HeroMode(
@@ -29,59 +61,64 @@ class KulupApp extends StatelessWidget {
         );
       },
       theme: base.copyWith(
-        scaffoldBackgroundColor: const Color(0xFFF3F7FB),
+        textTheme: base.textTheme.apply(
+          bodyColor: base.colorScheme.onSurface,
+          displayColor: base.colorScheme.onSurface,
+        ),
         appBarTheme: AppBarTheme(
-          elevation: 0,
+          elevation: 1,
           centerTitle: false,
-          backgroundColor: base.colorScheme.surface,
+          backgroundColor: base.colorScheme.surfaceContainerLowest,
           foregroundColor: base.colorScheme.onSurface,
-          titleTextStyle: base.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-          ),
+        ),
+        iconTheme: IconThemeData(color: base.colorScheme.onSurface),
+        dividerTheme: DividerThemeData(
+          color: base.colorScheme.outlineVariant,
+          thickness: 1,
         ),
         cardTheme: CardThemeData(
           elevation: 0,
+          color: base.colorScheme.surfaceContainerLowest,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: base.colorScheme.outlineVariant),
           ),
         ),
         listTileTheme: ListTileThemeData(
+          iconColor: base.colorScheme.primary,
+          textColor: base.colorScheme.onSurface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
+          filled: false,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: base.colorScheme.outlineVariant),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: base.colorScheme.primary, width: 1.4),
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: base.colorScheme.primary, width: 1.2),
           ),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
-            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-        textTheme: base.textTheme.copyWith(
-          headlineSmall: base.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-          titleMedium: base.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: base.colorScheme.primary,
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       ),

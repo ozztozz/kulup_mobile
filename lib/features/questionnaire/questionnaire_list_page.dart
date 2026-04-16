@@ -1,10 +1,17 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_nav_drawer.dart";
+import "../../core/app_top_bar.dart";
 import "../dashboard/club_service.dart";
+import "../dashboard/team_list_page.dart";
+import "../payments/payment_list_page.dart";
+import "../dashboard/training_weekly_page.dart";
 import "questionnaire_response_page.dart";
 
 class QuestionnaireListPage extends StatefulWidget {
-  const QuestionnaireListPage({super.key});
+  const QuestionnaireListPage({super.key, required this.onLogout});
+
+  final VoidCallback onLogout;
 
   @override
   State<QuestionnaireListPage> createState() => _QuestionnaireListPageState();
@@ -61,7 +68,10 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
 
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => QuestionnaireResponsePage(row: row),
+        builder: (_) => QuestionnaireResponsePage(
+          row: row,
+          onLogout: widget.onLogout,
+        ),
       ),
     );
 
@@ -76,7 +86,43 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
     final unansweredCount = _rows.where((row) => row["has_responded"] != true).length;
 
     return Scaffold(
-      appBar: AppBar(
+      drawer: AppNavDrawer(
+        fullName: "Alpha",
+        currentSection: AppNavSection.questionnaires,
+        onHome: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
+        onTeams: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TeamListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onPayments: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PaymentListPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onTrainings: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TrainingWeeklyPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
+        onQuestionnaires: () {
+          Navigator.of(context).pop();
+        },
+        onLogout: widget.onLogout,
+      ),
+      appBar: AppTopBar(
         title: const Text("Anketler"),
         actions: [
           IconButton(
@@ -86,26 +132,15 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
-              theme.scaffoldBackgroundColor,
-            ],
-          ),
-        ),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(child: Text(_error!))
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text(_error!))
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
                         Card(
                           child: Padding(
                             padding: const EdgeInsets.all(12),
@@ -116,6 +151,10 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
                                 Expanded(
                                   child: Text(
                                     "Toplam ${_rows.length} satir, yanit bekleyen $unansweredCount satir",
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -144,22 +183,39 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
                               onTap: () => _openAnswerPage(row),
                               leading: Icon(
                                 hasResponded ? Icons.check_circle : Icons.edit_note,
-                                color: hasResponded ? Colors.green : Colors.orange,
+                                color: hasResponded
+                                    ? theme.colorScheme.tertiary
+                                    : theme.colorScheme.secondary,
                               ),
                               title: Text(questionnaire["title"]?.toString() ?? "Anket"),
                               subtitle: Text(
                                 "$memberName - ${team["name"] ?? ""}",
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               trailing: hasResponded
-                                  ? const Text("Yanitlandi")
-                                  : const Text("Yanitla"),
+                                  ? Text(
+                                      "Yanitlandi",
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: theme.colorScheme.tertiary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    )
+                                  : Text(
+                                      "Yanitla",
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: theme.colorScheme.secondary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                             ),
                           );
                         }),
-                      ],
-                    ),
+                    ],
                   ),
-      ),
+                ),
     );
   }
 }
