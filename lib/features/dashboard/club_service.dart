@@ -98,7 +98,14 @@ class ClubService {
 
   Future<List<Map<String, dynamic>>> fetchTrainings() async {
     final response = await ApiClient.dio.get<dynamic>("/trainings/");
-    final list = (response.data as List<dynamic>?) ?? <dynamic>[];
+    final data = response.data;
+    final list = data is List<dynamic>
+      ? data
+      : data is Map
+        ? (data["results"] as List<dynamic>?) ??
+          (data["data"] as List<dynamic>?) ??
+          <dynamic>[]
+        : <dynamic>[];
     return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
   }
 
@@ -119,7 +126,7 @@ class ClubService {
         "time": time,
         if (endTime != null && endTime.isNotEmpty) "end_time": endTime,
         "location": location,
-        if (trainerId != null) "trainer": trainerId,
+        "trainer": ?trainerId,
         if (notes != null && notes.trim().isNotEmpty) "notes": notes.trim(),
       },
     );

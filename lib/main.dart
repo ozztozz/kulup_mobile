@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "core/offline_queue_service.dart";
 import "features/auth/auth_service.dart";
 import "features/auth/login_page.dart";
 import "features/dashboard/dashboard_page.dart";
@@ -136,6 +137,7 @@ class AppEntryPoint extends StatefulWidget {
 
 class _AppEntryPointState extends State<AppEntryPoint> {
   final AuthService _authService = AuthService();
+  final OfflineQueueService _offlineQueueService = OfflineQueueService();
   bool _checkingSession = true;
   bool _authenticated = false;
 
@@ -147,6 +149,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
   Future<void> _bootstrap() async {
     final hasSession = await _authService.hasSession();
+    if (hasSession) {
+      await _offlineQueueService.syncPendingCreates();
+    }
     if (!mounted) {
       return;
     }
@@ -157,6 +162,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   }
 
   void _onLoginSuccess() {
+    _offlineQueueService.syncPendingCreates();
     setState(() {
       _authenticated = true;
     });

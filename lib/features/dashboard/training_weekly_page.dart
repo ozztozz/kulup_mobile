@@ -19,13 +19,24 @@ class TrainingWeeklyPage extends StatefulWidget {
 
 class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
   final ClubService _clubService = ClubService();
-  final ScrollController _calendarScrollController = ScrollController();
+  final ScrollController _dayScrollController = ScrollController();
 
   bool _isLoading = true;
   String? _error;
   List<Map<String, dynamic>> _trainings = <Map<String, dynamic>>[];
+  int _selectedDay = DateTime.now().weekday;
 
   static const Map<int, String> _weekdayNames = <int, String>{
+    1: "Pzt",
+    2: "Sal",
+    3: "Car",
+    4: "Per",
+    5: "Cum",
+    6: "Cmt",
+    7: "Paz",
+  };
+
+  static const Map<int, String> _weekdayLongNames = <int, String>{
     1: "Pazartesi",
     2: "Sali",
     3: "Carsamba",
@@ -43,7 +54,7 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
 
   @override
   void dispose() {
-    _calendarScrollController.dispose();
+    _dayScrollController.dispose();
     super.dispose();
   }
 
@@ -61,9 +72,6 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
       setState(() {
         _trainings = trainings;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusCurrentDay();
-      });
     } catch (e) {
       if (!mounted) {
         return;
@@ -80,67 +88,67 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
     }
   }
 
+  Future<void> _openCreateTraining() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TrainingCreatePage(onLogout: widget.onLogout),
+      ),
+    );
+    if (created == true && mounted) {
+      await _loadTrainings();
+    }
+  }
+
   int _dayValue(Map<String, dynamic> row) {
     final raw = row["day_of_week"];
     if (raw is num) {
-      return raw.toInt();
+      final value = raw.toInt();
+      if (value >= 1 && value <= 7) {
+        return value;
+      }
+      if (value >= 0 && value <= 6) {
+        return value + 1;
+      }
+      return 0;
     }
     if (raw is String) {
-      return int.tryParse(raw) ?? 0;
+      final parsed = int.tryParse(raw);
+      if (parsed != null) {
+        if (parsed >= 1 && parsed <= 7) {
+          return parsed;
+        }
+        if (parsed >= 0 && parsed <= 6) {
+          return parsed + 1;
+        }
+      }
+
+      final normalized = raw.trim().toLowerCase();
+      const dayNames = <String, int>{
+        "pzt": 1,
+        "pazartesi": 1,
+        "sal": 2,
+        "salı": 2,
+        "sali": 2,
+        "çarşamba": 3,
+        "carsamba": 3,
+        "car": 3,
+        "per": 4,
+        "perşembe": 4,
+        "persembe": 4,
+        "cum": 5,
+        "cuma": 5,
+        "cmt": 6,
+        "cumartesi": 6,
+        "paz": 7,
+        "pazar": 7,
+      };
+      return dayNames[normalized] ?? 0;
     }
     return 0;
   }
 
-  String _dayLabel(int day, List<Map<String, dynamic>> rows) {
-    final fromApi = rows
-        .map((row) => row["day_name"]?.toString() ?? "")
-        .firstWhere((name) => name.trim().isNotEmpty, orElse: () => "");
-    if (fromApi.isNotEmpty) {
-      return fromApi;
-    }
-    return _weekdayNames[day] ?? "Belirsiz";
-  }
-
-  Map<int, List<Map<String, dynamic>>> _groupedTrainings() {
-    final grouped = <int, List<Map<String, dynamic>>>{};
-    for (final training in _trainings) {
-      final day = _dayValue(training);
-      grouped.putIfAbsent(day, () => <Map<String, dynamic>>[]).add(training);
-    }
-
-    for (final rows in grouped.values) {
-      rows.sort((a, b) => _startMinutes(a).compareTo(_startMinutes(b)));
-    }
-
-    return grouped;
-  }
-
-  int _startMinutes(Map<String, dynamic> row, {String key = "time"}) {
-    final value = _timeOnly(row, key: key);
-    final parts = value.split(":");
-    if (parts.length < 2) {
-      return 24 * 60;
-    }
-    return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
-  }
-
-  void _focusCurrentDay() {
-    if (!_calendarScrollController.hasClients) {
-      return;
-    }
-
-    const columnWidth = 164.0;
-    const columnGap = 8.0;
-    final todayIndex = DateTime.now().weekday - 1;
-    final rawOffset = todayIndex * (columnWidth + columnGap);
-    final maxOffset = _calendarScrollController.position.maxScrollExtent;
-    final targetOffset = rawOffset.clamp(0.0, maxOffset);
-
-    _calendarScrollController.animateTo(
-      targetOffset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
+  String _dayLabel(int day) {
+    return _weekdayNames[day] ?? "Day";
   }
 
   String _timeOnly(Map<String, dynamic> row, {String key = "time"}) {
@@ -154,43 +162,167 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
     return value;
   }
 
-  List<int> _calendarWeekdays() => const <int>[1, 2, 3, 4, 5, 6, 7];
-
-  Color _dayColor(int day) {
-    const colors = <Color>[
-      Color(0xFF3A3D55),
-      Color(0xFF7E8CAA),
-      Color(0xFFA5BBBE),
-      Color(0xFF3A3D55),
-      Color(0xFF7E8CAA),
-      Color(0xFFA5BBBE),
-      Color(0xFF3A3D55),
-    ];
-
-    if (day < 1 || day > 7) {
-      return colors.first;
+  Map<int, List<Map<String, dynamic>>> _groupedTrainings() {
+    final grouped = <int, List<Map<String, dynamic>>>{};
+    for (final training in _trainings) {
+      final day = _dayValue(training);
+      grouped.putIfAbsent(day, () => <Map<String, dynamic>>[]).add(training);
     }
-
-    return colors[day - 1];
+    for (final rows in grouped.values) {
+      rows.sort((a, b) => _startMinutes(a).compareTo(_startMinutes(b)));
+    }
+    return grouped;
   }
 
-  Future<void> _openCreateTraining() async {
-    final created = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => TrainingCreatePage(onLogout: widget.onLogout),
-      ),
-    );
-    if (created == true && mounted) {
-      await _loadTrainings();
+  List<int> _weekDays() => const <int>[1, 2, 3, 4, 5, 6, 7];
+
+  List<Map<String, dynamic>> _rowsForDay(int day) {
+    final grouped = _groupedTrainings();
+    return grouped[day] ?? <Map<String, dynamic>>[];
+  }
+
+  int _startMinutes(Map<String, dynamic> row, {String key = "time"}) {
+    final value = _timeOnly(row, key: key);
+    final parts = value.split(":");
+    if (parts.length < 2) {
+      return 24 * 60;
     }
+    return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
+  }
+
+  int _endMinutes(Map<String, dynamic> row) {
+    final end = _startMinutes(row, key: "end_time");
+    if (end == 24 * 60) {
+      return _startMinutes(row) + 60;
+    }
+    return end <= _startMinutes(row) ? _startMinutes(row) + 60 : end;
+  }
+
+  DateTime _dateForWeekday(int weekday) {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    return DateTime(monday.year, monday.month, monday.day + (weekday - 1));
+  }
+
+  String _monthName(int month) {
+    const names = <String>[
+      "Ocak",
+      "Subat",
+      "Mart",
+      "Nisan",
+      "Mayis",
+      "Haziran",
+      "Temmuz",
+      "Agustos",
+      "Eylul",
+      "Ekim",
+      "Kasim",
+      "Aralik",
+    ];
+    return names[month - 1];
+  }
+
+  String _selectedDateLabel(DateTime date) {
+    final longDay = _weekdayLongNames[date.weekday] ?? _dayLabel(date.weekday);
+    return "${_monthName(date.month)} ${date.day}, $longDay";
+  }
+
+  String _timeRangeLabel(Map<String, dynamic> row) {
+    final start = _timeOnly(row, key: "time");
+    final end = _timeOnly(row, key: "end_time");
+    if (end.isEmpty) {
+      return start;
+    }
+    return "$start - $end";
+  }
+
+  ({Color bg, Color fg}) _teamColorStyle(String teamName) {
+    final normalized = teamName.trim().toUpperCase();
+    if (normalized.contains("KIRMIZI")) {
+      return (bg: const Color(0xFFF8D7DA), fg: const Color(0xFF7A1C24));
+    }
+    if (normalized.contains("TURUNCU")) {
+      return (bg: const Color(0xFFFFE4CC), fg: const Color(0xFF8A4A0F));
+    }
+    if (normalized.contains("MAVI") || normalized.contains("BLUE")) {
+      return (bg: const Color(0xFFD8E7FF), fg: const Color(0xFF1D3F73));
+    }
+    if (normalized.contains("YESIL") || normalized.contains("GREEN")) {
+      return (bg: const Color(0xFFDCEFD8), fg: const Color(0xFF2D5B2E));
+    }
+    return (bg: const Color(0xFFE8EBF1), fg: const Color(0xFF3F4653));
+  }
+
+  void _scrollToSelectedDay() {
+    if (!_dayScrollController.hasClients) {
+      return;
+    }
+
+    const chipWidth = 56.0;
+    const chipGap = 10.0;
+    final offset = (_selectedDay - 1) * (chipWidth + chipGap);
+    final maxOffset = _dayScrollController.position.maxScrollExtent;
+    final targetOffset = offset.clamp(0.0, maxOffset);
+
+    _dayScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final grouped = _groupedTrainings();
+    final selectedRows = _rowsForDay(_selectedDay);
+    final selectedDate = _dateForWeekday(_selectedDay);
+    final now = DateTime.now();
+    final isToday =
+        now.year == selectedDate.year &&
+        now.month == selectedDate.month &&
+        now.day == selectedDate.day;
+    final todayMinutes = now.hour * 60 + now.minute;
+
+    final listItems = selectedRows.map((training) {
+      final team = Map<String, dynamic>.from(
+        (training["team"] as Map?) ?? <String, dynamic>{},
+      );
+      final title =
+          team["name"]?.toString() ??
+          training["team_name"]?.toString() ??
+          training["title"]?.toString() ??
+          "Antrenman";
+      final location = (training["location"]?.toString() ?? "").trim();
+      final trainerName = (training["trainer_name"]?.toString() ?? "").trim();
+      final timeLabel = _timeRangeLabel(training);
+      final start = _startMinutes(training);
+      final end = _endMinutes(training);
+      final isCurrent = isToday && todayMinutes >= start && todayMinutes <= end;
+
+      final details = <String>[
+        timeLabel,
+        if (location.isNotEmpty) location,
+        if (trainerName.isNotEmpty) trainerName,
+      ].join(" • ");
+      final teamStyle = _teamColorStyle(title);
+
+      return <String, dynamic>{
+        "title": title,
+        "details": details,
+        "isCurrent": isCurrent,
+        "start": start,
+        "teamBg": teamStyle.bg,
+        "teamFg": teamStyle.fg,
+      };
+    }).toList();
+    final morningItems = listItems
+        .where((item) => (item["start"] as int? ?? 0) < 12 * 60)
+        .toList();
+    final eveningItems = listItems
+        .where((item) => (item["start"] as int? ?? 0) >= 12 * 60)
+        .toList();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFEFF0F3),
       drawer: AppNavDrawer(
         fullName: "Alpha",
         currentSection: AppNavSection.trainings,
@@ -228,7 +360,7 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
         onLogout: widget.onLogout,
       ),
       appBar: AppTopBar(
-        title: const Text("Haftalik Antrenman Programi"),
+        title: const Text("Training Weekly"),
         actions: [
           IconButton(
             onPressed: _openCreateTraining,
@@ -242,296 +374,409 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openCreateTraining,
+        backgroundColor: const Color(0xFF2CC36B),
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : RefreshIndicator(
-                  onRefresh: _loadTrainings,
-                  child: _trainings.isEmpty
-                      ? ListView(
-                          children: const [
-                            SizedBox(height: 200),
-                            Center(child: Text("Antrenman bulunamadi.")),
-                          ],
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.all(16),
+          ? Center(child: Text(_error!))
+          : RefreshIndicator(
+              onRefresh: _loadTrainings,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F7F8),
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              "Haftalik Takvim",
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              "Gunleri yatay takvimde goruntuleyin.",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
                             SizedBox(
-                              height: 460,
-                              child: SingleChildScrollView(
-                                controller: _calendarScrollController,
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: _calendarWeekdays().map((day) {
-                                    final dayRows = grouped[day] ?? <Map<String, dynamic>>[];
-                                    final dayTitle = _dayLabel(day, dayRows);
-                                    final isToday = DateTime.now().weekday == day;
-                                    final sabahRows = dayRows
-                                        .where((row) => _startMinutes(row, key: "time") < 12 * 60)
-                                        .toList();
-                                    final aksamRows = dayRows
-                                        .where((row) => _startMinutes(row, key: "time") >= 12 * 60)
-                                        .toList();
-
-                                    return Container(
-                                      width: 164,
-                                      margin: const EdgeInsets.only(right: 8),
-                                      child: Card(
-                                        elevation: 0,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14),
-                                          side: BorderSide(
-                                            color: isToday
-                                                ? _dayColor(day)
-                                                : theme.colorScheme.outlineVariant,
-                                            width: isToday ? 1.4 : 1,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    width: 8,
-                                                    height: 8,
-                                                    decoration: BoxDecoration(
-                                                      color: _dayColor(day),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(
-                                                    child: Text(
-                                                      dayTitle,
-                                                      style: theme.textTheme.labelLarge?.copyWith(
-                                                        fontWeight: FontWeight.w800,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                isToday ? "Bugun" : "${dayRows.length} ders",
-                                                style: theme.textTheme.labelSmall?.copyWith(
-                                                  color: theme.colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Expanded(
-                                                child: Column(
-                                                  children: [
-                                                    Expanded(
-                                                      child: _PeriodSection(
-                                                        label: "Sabah",
-                                                        rows: sabahRows,
-                                                        dayColor: _dayColor(day),
-                                                        sectionTint: theme.colorScheme.primary.withValues(
-                                                          alpha: 0.1,
-                                                        ),
-                                                        timeOnly: _timeOnly,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 6),
-                                                    Expanded(
-                                                      child: _PeriodSection(
-                                                        label: "Aksam",
-                                                        rows: aksamRows,
-                                                        dayColor: _dayColor(day),
-                                                        sectionTint: theme.colorScheme.tertiary.withValues(
-                                                          alpha: 0.12,
-                                                        ),
-                                                        timeOnly: _timeOnly,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
+                              width: 40,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedDay = _selectedDay == 1
+                                        ? 7
+                                        : _selectedDay - 1;
+                                  });
+                                },
+                                icon: const Icon(Icons.chevron_left_rounded),
+                              ),
+                            ),
+                            const Expanded(
+                              child: Text(
+                                "Timeline",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 28,
+                                  color: Color(0xFF2B2D33),
                                 ),
                               ),
                             ),
-                              ],
+                            SizedBox(
+                              width: 40,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: _openCreateTraining,
+                                icon: const Icon(
+                                  Icons.add_circle_outline_rounded,
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFEFF1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: _weekDays().map((day) {
+                              final date = _dateForWeekday(day);
+                              final isSelected = day == _selectedDay;
+                              return Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedDay = day;
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                      boxShadow: isSelected
+                                          ? [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.06,
+                                                ),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Text(
+                                          _dayLabel(day),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isSelected
+                                                ? const Color(0xFF5E6370)
+                                                : const Color(0xFF8C909A),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "${date.day}",
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w800,
+                                            color: isSelected
+                                                ? const Color(0xFF2E3138)
+                                                : const Color(0xFF606470),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          _selectedDateLabel(selectedDate),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2F3239),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          selectedRows.isEmpty
+                              ? "Bu gunde antrenman yok"
+                              : "${selectedRows.length} antrenman",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF7C8390),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        if (listItems.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F6F8),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFD9DEE6),
+                              ),
+                            ),
+                            child: const Text(
+                              "Bu gun icin antrenman yok",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF5F6775),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          )
+                        else
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Sabah",
+                                style: TextStyle(
+                                  color: Color(0xFF5E6370),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (morningItems.isEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF3D6),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFFF0C97A),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Antrenman yok",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Color(0xFF8A6412),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                )
+                              else
+                                ...List.generate(morningItems.length, (index) {
+                                  final item = morningItems[index];
+                                  final isCurrent = item["isCurrent"] == true;
+                                  final teamBg =
+                                      item["teamBg"] as Color? ??
+                                      const Color(0xFFE8EBF1);
+                                  final teamFg =
+                                      item["teamFg"] as Color? ??
+                                      const Color(0xFF3F4653);
+                                  return Container(
+                                    margin: EdgeInsets.only(
+                                      bottom: index == morningItems.length - 1
+                                          ? 14
+                                          : 10,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isCurrent
+                                          ? const Color(0xFF232A38)
+                                          : const Color(0xFFD5EBD4),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: teamBg,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            item["title"]?.toString() ??
+                                                "Antrenman",
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: teamFg,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          item["details"]?.toString() ?? "",
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: isCurrent
+                                                ? Colors.white70
+                                                : const Color(0xFF5E6B62),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              const Text(
+                                "Aksam",
+                                style: TextStyle(
+                                  color: Color(0xFF5E6370),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (eveningItems.isEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF3D6),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFFF0C97A),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Antrenman yok",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Color(0xFF8A6412),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                )
+                              else
+                                ...List.generate(eveningItems.length, (index) {
+                                  final item = eveningItems[index];
+                                  final isCurrent = item["isCurrent"] == true;
+                                  final teamBg =
+                                      item["teamBg"] as Color? ??
+                                      const Color(0xFFE8EBF1);
+                                  final teamFg =
+                                      item["teamFg"] as Color? ??
+                                      const Color(0xFF3F4653);
+                                  return Container(
+                                    margin: EdgeInsets.only(
+                                      bottom: index == eveningItems.length - 1
+                                          ? 0
+                                          : 10,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isCurrent
+                                          ? const Color(0xFF232A38)
+                                          : const Color(0xFFD5EBD4),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: teamBg,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            item["title"]?.toString() ??
+                                                "Antrenman",
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: teamFg,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          item["details"]?.toString() ?? "",
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: isCurrent
+                                                ? Colors.white70
+                                                : const Color(0xFF5E6B62),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                            ],
+                          ),
+                      ],
                     ),
-    );
-  }
-}
-
-class _PeriodHeader extends StatelessWidget {
-  const _PeriodHeader({required this.label, required this.count});
-
-  final String label;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            "($count)",
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PeriodSection extends StatelessWidget {
-  const _PeriodSection({
-    required this.label,
-    required this.rows,
-    required this.dayColor,
-    required this.sectionTint,
-    required this.timeOnly,
-  });
-
-  final String label;
-  final List<Map<String, dynamic>> rows;
-  final Color dayColor;
-  final Color sectionTint;
-  final String Function(Map<String, dynamic>, {String key}) timeOnly;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: sectionTint,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outline, width: 1.1),
-      ),
-      child: Column(
-        children: [
-          _PeriodHeader(label: label, count: rows.length),
-          const SizedBox(height: 2),
-          Expanded(
-            child: rows.isEmpty
-                ? Center(
-                    child: Text(
-                      "Bos",
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: rows.length,
-                    padding: EdgeInsets.zero,
-                    physics: const ClampingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      return _TrainingCompactCard(
-                        training: rows[index],
-                        dayColor: dayColor,
-                        timeOnly: timeOnly,
-                      );
-                    },
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TrainingCompactCard extends StatelessWidget {
-  const _TrainingCompactCard({
-    required this.training,
-    required this.dayColor,
-    required this.timeOnly,
-  });
-
-  final Map<String, dynamic> training;
-  final Color dayColor;
-  final String Function(Map<String, dynamic>, {String key}) timeOnly;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final team = Map<String, dynamic>.from((training["team"] as Map?) ?? <String, dynamic>{});
-    final teamName = (team["name"]?.toString() ?? "TAKIM").toUpperCase();
-    final startTime = timeOnly(training, key: "time");
-    final endTime = timeOnly(training, key: "end_time");
-    final location = (training["location"]?.toString() ?? "").toUpperCase();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: dayColor.withValues(alpha: 0.35), width: 1.0),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "$startTime-$endTime",
-            style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            teamName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          if (location.isNotEmpty)
-            Text(
-              location,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
+                ],
               ),
             ),
-        ],
-      ),
     );
   }
 }

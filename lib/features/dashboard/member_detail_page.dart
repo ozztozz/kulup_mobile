@@ -76,151 +76,211 @@ class MemberDetailPage extends StatelessWidget {
       appBar: AppTopBar(
         title: const Text("Uye Detayi"),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Stack(
         children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => Navigator.of(context).maybePop(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+          Container(
+            height: 220,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.colorScheme.primary,
+                  theme.colorScheme.primary.withValues(alpha: 0.88),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              children: [
+                Row(
                   children: [
-                    Icon(
-                      Icons.chevron_left,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ),
-                    Text(
-                      "Uyelere Don",
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              fullName.isEmpty ? "Uye" : fullName,
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              teamName.isEmpty ? "TAKIM" : teamName.toUpperCase(),
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                letterSpacing: 0.4,
-              ),
-            ),
-            const SizedBox(height: 14),
-            FilledButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Duzenleme yakinda eklenecek.")),
-                );
-              },
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text("Duzenle"),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: theme.colorScheme.secondary,
-                foregroundColor: theme.colorScheme.onSecondary,
-              ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Silme islemi yakinda eklenecek.")),
-                );
-              },
-              icon: const Icon(Icons.delete_outline),
-              label: const Text("Sil"),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
-                child: Column(
-                  children: [
-                    _MemberAvatar(
-                      photoUrl: photoUrl,
-                      initials: _initials(member),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      fullName.isEmpty ? "Uye" : fullName,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: isActive
-                            ? theme.colorScheme.tertiaryContainer
-                            : theme.colorScheme.errorContainer,
-                      ),
-                      child: Text(
-                        isActive ? "Aktif" : "Pasif",
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: isActive
-                              ? theme.colorScheme.onTertiaryContainer
-                              : theme.colorScheme.onErrorContainer,
-                          fontWeight: FontWeight.w700,
+                    InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => Navigator.of(context).maybePop(),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 18,
+                          color: theme.colorScheme.onPrimary,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        TeamLogoAvatar(
-                          team: team,
-                          size: 34,
-                          borderRadius: 10,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            teamName.isEmpty ? "Takim" : teamName,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            "PROFILE",
                             style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.onPrimary,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
                             ),
                           ),
-                        ),
-                      ],
+                          Text(
+                            teamName.isEmpty ? "TAKIM" : teamName.toUpperCase(),
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.82),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Menü yakında eklenecek.")),
+                        );
+                      },
+                      icon: Icon(Icons.more_vert, color: theme.colorScheme.onPrimary),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 20),
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Card(
+                      margin: const EdgeInsets.only(top: 56),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 72, 20, 22),
+                        child: Column(
+                          children: [
+                            Text(
+                              fullName.isEmpty ? "Uye" : fullName,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              teamName.isEmpty ? "Takim bilgisi yok" : teamName,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                color: isActive
+                                    ? theme.colorScheme.tertiaryContainer
+                                    : theme.colorScheme.errorContainer,
+                              ),
+                              child: Text(
+                                isActive ? "Aktif" : "Pasif",
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: isActive
+                                      ? theme.colorScheme.onTertiaryContainer
+                                      : theme.colorScheme.onErrorContainer,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Duzenleme yakinda eklenecek.")),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.edit_outlined),
+                                    label: const Text("Duzenle"),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: theme.colorScheme.secondary,
+                                      foregroundColor: theme.colorScheme.onSecondary,
+                                    ),
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Silme islemi yakinda eklenecek.")),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: const Text("Sil"),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                TeamLogoAvatar(
+                                  team: team,
+                                  size: 34,
+                                  borderRadius: 10,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    teamName.isEmpty ? "Takim" : teamName,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      child: _MemberAvatar(
+                        photoUrl: photoUrl,
+                        initials: _initials(member),
+                        radius: 56,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _InfoCard(
+                  title: "Iletisim",
+                  value: email.isEmpty ? "E-posta bilgisi yok" : email,
+                  icon: Icons.email_outlined,
+                ),
+                _InfoCard(
+                  title: "Kisisel Bilgiler",
+                  value:
+                      "Dogum Tarihi: ${birthdate.isEmpty ? "-" : birthdate}\nOkul: ${school.isEmpty ? "-" : school}\nKatilim Tarihi: ${joinedDate.isEmpty ? "-" : joinedDate}\nTakim: ${teamName.isEmpty ? "-" : teamName}",
+                  multiline: true,
+                  icon: Icons.badge_outlined,
+                ),
+                _InfoCard(
+                  title: "Notlar",
+                  value: notes.isEmpty ? "-" : notes,
+                  multiline: true,
+                  icon: Icons.sticky_note_2_outlined,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            _InfoCard(
-              title: "Iletisim",
-              value: email.isEmpty ? "E-posta bilgisi yok" : email,
-              icon: Icons.email_outlined,
-            ),
-            _InfoCard(
-              title: "Kisisel Bilgiler",
-              value:
-                  "Dogum Tarihi: ${birthdate.isEmpty ? "-" : birthdate}\nOkul: ${school.isEmpty ? "-" : school}\nKatilim Tarihi: ${joinedDate.isEmpty ? "-" : joinedDate}\nTakim: ${teamName.isEmpty ? "-" : teamName}",
-              multiline: true,
-              icon: Icons.badge_outlined,
-            ),
-            _InfoCard(
-              title: "Notlar",
-              value: notes.isEmpty ? "-" : notes,
-              multiline: true,
-              icon: Icons.sticky_note_2_outlined,
-            ),
+          ),
         ],
       ),
     );
@@ -237,16 +297,17 @@ class MemberDetailPage extends StatelessWidget {
 }
 
 class _MemberAvatar extends StatelessWidget {
-  const _MemberAvatar({required this.photoUrl, required this.initials});
+  const _MemberAvatar({required this.photoUrl, required this.initials, this.radius = 44});
 
   final String photoUrl;
   final String initials;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     if (photoUrl.isEmpty) {
       return CircleAvatar(
-        radius: 44,
+        radius: radius,
         child: Text(
           initials,
           style: Theme.of(context).textTheme.headlineSmall,
@@ -255,15 +316,15 @@ class _MemberAvatar extends StatelessWidget {
     }
 
     return CircleAvatar(
-      radius: 44,
+      radius: radius,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: ClipOval(
         child: Image.network(
           photoUrl,
-          width: 88,
-          height: 88,
+          width: radius * 2,
+          height: radius * 2,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
+          errorBuilder: (_, _, _) {
             return Center(
               child: Text(
                 initials,

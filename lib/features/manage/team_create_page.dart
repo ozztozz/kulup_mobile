@@ -2,9 +2,12 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:image_picker/image_picker.dart";
 import "dart:typed_data";
+import "dart:async";
+import "dart:io";
 
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
+import "../../core/offline_queue_service.dart";
 import "../dashboard/club_service.dart";
 import "../dashboard/team_list_page.dart";
 import "../dashboard/training_weekly_page.dart";
@@ -22,6 +25,7 @@ class TeamCreatePage extends StatefulWidget {
 
 class _TeamCreatePageState extends State<TeamCreatePage> {
   final ClubService _clubService = ClubService();
+  final OfflineQueueService _offlineQueueService = OfflineQueueService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -69,6 +73,25 @@ class _TeamCreatePageState extends State<TeamCreatePage> {
       }
       Navigator.of(context).pop(true);
     } on DioException catch (e) {
+      if (_isNetworkIssue(e)) {
+        await _offlineQueueService.enqueueTeam(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          foundedDate: _foundedDateController.text.trim(),
+          logoBytes: _selectedLogoBytes,
+          logoFileName: _selectedLogo?.name,
+        );
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Takim offline kaydedildi. Baglanti gelince gonderilecek."),
+          ),
+        );
+        Navigator.of(context).pop(true);
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -89,6 +112,14 @@ class _TeamCreatePageState extends State<TeamCreatePage> {
         });
       }
     }
+  }
+
+  bool _isNetworkIssue(DioException e) {
+    return e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+      (e.type == DioExceptionType.unknown && (e.error is SocketException || e.error is TimeoutException));
   }
 
   Future<void> _pickLogo() async {

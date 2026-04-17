@@ -146,58 +146,128 @@ class _PaymentListPageState extends State<PaymentListPage> {
               : RefreshIndicator(
                   onRefresh: _loadPayments,
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
                     children: [
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _SummaryTile(
-                                    label: "Toplam",
-                                    value: _payments.length.toString(),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _SummaryTile(
-                                    label: "Odendi",
-                                    value: _paidCount().toString(),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _SummaryTile(
-                                    label: "Bakiye",
-                                    value: unpaidCount.toString(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                      Text(
+                        "Payment Details",
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF12233F),
                         ),
-                        const SizedBox(height: 12),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.payments_outlined),
-                                const SizedBox(width: 10),
-                                Expanded(
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Takip edilen odemeler ve tahsilat ozeti.",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        color: const Color(0xFF10213E),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Toplam tahsilat",
+                                      style: theme.textTheme.titleSmall?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _totalAmount().toStringAsFixed(2),
+                                      style: theme.textTheme.headlineSmall?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      "${_payments.length} kayit • $_paidCount() odendi • $unpaidCount bekliyor",
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
+                                child: Center(
                                   child: Text(
-                                    "Toplam tahsilat tutari",
-                                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                                    "${_paidCount()}",
+                                    style: theme.textTheme.headlineSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
-                                Text(
-                                  _totalAmount().toStringAsFixed(2),
-                                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 14),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _SummaryTile(
+                              label: "Toplam",
+                              value: _payments.length.toString(),
+                              icon: Icons.list_alt_outlined,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _SummaryTile(
+                              label: "Odendi",
+                              value: _paidCount().toString(),
+                              icon: Icons.verified_outlined,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _SummaryTile(
+                              label: "Bekliyor",
+                              value: unpaidCount.toString(),
+                              icon: Icons.hourglass_bottom_outlined,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Text(
+                            "Activity",
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: _loadPayments,
+                            child: const Text("See all"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                         ..._payments.map((payment) {
                           final member = Map<String, dynamic>.from(
                             (payment["member"] as Map?) ?? <String, dynamic>{},
@@ -211,7 +281,12 @@ class _PaymentListPageState extends State<PaymentListPage> {
                           final isPaid = payment["is_paid"] == true;
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 0,
+                            margin: const EdgeInsets.only(bottom: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(color: theme.colorScheme.outlineVariant),
+                            ),
                             child: ListTile(
                               onTap: () {
                                 Navigator.of(context).push(
@@ -286,23 +361,40 @@ class _PaymentListPageState extends State<PaymentListPage> {
 }
 
 class _SummaryTile extends StatelessWidget {
-  const _SummaryTile({required this.label, required this.value});
+  const _SummaryTile({required this.label, required this.value, required this.icon});
 
   final String label;
   final String value;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      children: [
-        Text(
-          value,
-          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: theme.textTheme.bodyMedium),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF12233F)),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,7 +1,22 @@
+import "package:flutter/foundation.dart";
+
 class AppConfig {
-  // For Android emulator use 10.0.2.2, for real devices use your PC's local IP.
-  static const String apiBaseUrl = String.fromEnvironment(
-    "API_BASE_URL",
-    defaultValue: "http://10.0.2.2:8000",
-  );
+  static String get apiBaseUrl {
+    const overrideUrl = String.fromEnvironment("API_BASE_URL", defaultValue: "");
+    if (overrideUrl.isNotEmpty) {
+      return overrideUrl;
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return "http://10.0.2.2:8000";
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        return "http://127.0.0.1:8000";
+      case TargetPlatform.fuchsia:
+        return "http://127.0.0.1:8000";
+    }
+  }
 }

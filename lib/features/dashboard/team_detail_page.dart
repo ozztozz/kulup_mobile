@@ -142,86 +142,216 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
-              : RefreshIndicator(
-                  onRefresh: _loadMembers,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                        if (description.isNotEmpty)
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Text(description),
+              : Stack(
+                  children: [
+                    Container(
+                      height: 220,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.primary.withValues(alpha: 0.88),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SafeArea(
+                      child: RefreshIndicator(
+                        onRefresh: _loadMembers,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                          children: [
+                            Row(
+                              children: [
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () => Navigator.of(context).maybePop(),
+                                  child: Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(
+                                      Icons.arrow_back_ios_new,
+                                      size: 18,
+                                      color: theme.colorScheme.onPrimary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        "PROFILE",
+                                        style: theme.textTheme.titleMedium?.copyWith(
+                                          color: theme.colorScheme.onPrimary,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                      Text(
+                                        teamName.toUpperCase(),
+                                        style: theme.textTheme.labelLarge?.copyWith(
+                                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.82),
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Menü yakında eklenecek.")),
+                                    );
+                                  },
+                                  icon: Icon(Icons.more_vert, color: theme.colorScheme.onPrimary),
+                                ),
+                              ],
                             ),
-                          ),
-                        if (description.isNotEmpty) const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: theme.colorScheme.outlineVariant),
-                          ),
-                          child: Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(14, 14, 12, 12),
+                            const SizedBox(height: 20),
+                            Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.topCenter,
+                              children: [
+                                Card(
+                                  margin: const EdgeInsets.only(top: 56),
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(20, 72, 20, 22),
+                                    child: Column(
+                                      children: [
+                                        Text(
+                                          teamName,
+                                          textAlign: TextAlign.center,
+                                          style: theme.textTheme.headlineSmall?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          description.isEmpty ? "Takim aciklamasi yok" : description,
+                                          textAlign: TextAlign.center,
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            color: theme.colorScheme.onSurfaceVariant,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Expanded(
+                                              child: FilledButton.icon(
+                                                onPressed: _openCreateMember,
+                                                icon: const Icon(Icons.person_add_alt_1_outlined),
+                                                label: const Text("Uye Ekle"),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: FilledButton.icon(
+                                                style: FilledButton.styleFrom(
+                                                  backgroundColor: theme.colorScheme.secondary,
+                                                  foregroundColor: theme.colorScheme.onSecondary,
+                                                ),
+                                                onPressed: _loadMembers,
+                                                icon: const Icon(Icons.refresh),
+                                                label: const Text("Yenile"),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 0,
+                                  child: TeamLogoAvatar(
+                                    team: widget.team,
+                                    size: 112,
+                                    borderRadius: 56,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                                 child: Row(
                                   children: [
-                                    TeamLogoAvatar(
-                                      team: widget.team,
-                                      size: 38,
-                                      borderRadius: 10,
+                                    Container(
+                                      width: 42,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Icons.groups_2_outlined,
+                                        color: theme.colorScheme.primary,
+                                      ),
                                     ),
-                                    const SizedBox(width: 10),
+                                    const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        "Takim\nUyeleri",
-                                        style: theme.textTheme.headlineSmall?.copyWith(
+                                        "Takim Uyeleri",
+                                        style: theme.textTheme.titleLarge?.copyWith(
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
                                     ),
                                     TextButton.icon(
                                       onPressed: _openCreateMember,
-                                      icon: const Text("Uye Ekle"),
-                                      label: const Icon(Icons.chevron_right),
+                                      icon: const Icon(Icons.add),
+                                      label: const Text("Ekle"),
                                     ),
                                   ],
                                 ),
                               ),
-                              Divider(
-                                height: 1,
-                                color: theme.colorScheme.outlineVariant,
-                              ),
-                              if (_members.isEmpty)
-                                const Padding(
-                                  padding: EdgeInsets.all(14),
+                            ),
+                            const SizedBox(height: 10),
+                            if (_members.isEmpty)
+                              Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
                                   child: Align(
                                     alignment: Alignment.centerLeft,
-                                    child: Text("Bu takim icin uye bulunamadi."),
-                                  ),
-                                )
-                              else
-                                ..._members.map(
-                                  (member) => _MemberListRow(
-                                    member: member,
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => MemberDetailPage(
-                                            member: member,
-                                            onLogout: widget.onLogout,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                    child: Text(
+                                      "Bu takim icin uye bulunamadi.",
+                                      style: theme.textTheme.bodyLarge,
+                                    ),
                                   ),
                                 ),
-                            ],
-                          ),
+                              )
+                            else
+                              ..._members.map(
+                                (member) => _MemberListRow(
+                                  member: member,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => MemberDetailPage(
+                                          member: member,
+                                          onLogout: widget.onLogout,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
+                  ],
                 ),
     );
   }
@@ -331,7 +461,7 @@ class _MemberSmallAvatar extends StatelessWidget {
           width: 68,
           height: 68,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
+          errorBuilder: (_, _, _) {
             return _MemberSmallAvatarFallback(initials: initials);
           },
         ),

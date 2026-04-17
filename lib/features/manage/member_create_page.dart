@@ -2,9 +2,12 @@ import "package:dio/dio.dart";
 import "package:flutter/material.dart";
 import "package:image_picker/image_picker.dart";
 import "dart:typed_data";
+import "dart:async";
+import "dart:io";
 
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
+import "../../core/offline_queue_service.dart";
 import "../dashboard/club_service.dart";
 import "../dashboard/team_list_page.dart";
 import "../dashboard/training_weekly_page.dart";
@@ -23,6 +26,7 @@ class MemberCreatePage extends StatefulWidget {
 
 class _MemberCreatePageState extends State<MemberCreatePage> {
   final ClubService _clubService = ClubService();
+  final OfflineQueueService _offlineQueueService = OfflineQueueService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _surnameController = TextEditingController();
@@ -134,6 +138,30 @@ class _MemberCreatePageState extends State<MemberCreatePage> {
       }
       Navigator.of(context).pop(true);
     } on DioException catch (e) {
+      if (_isNetworkIssue(e)) {
+        await _offlineQueueService.enqueueMember(
+          teamId: teamId,
+          userId: userId,
+          name: _nameController.text.trim(),
+          surname: _surnameController.text.trim(),
+          birthdate: _birthdateController.text.trim(),
+          school: _schoolController.text.trim(),
+          isActive: _isActive,
+          notes: _notesController.text.trim(),
+          photoBytes: _selectedPhotoBytes,
+          photoFileName: _selectedPhoto?.name,
+        );
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Uye offline kaydedildi. Baglanti gelince gonderilecek."),
+          ),
+        );
+        Navigator.of(context).pop(true);
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -154,6 +182,14 @@ class _MemberCreatePageState extends State<MemberCreatePage> {
         });
       }
     }
+  }
+
+  bool _isNetworkIssue(DioException e) {
+    return e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+      (e.type == DioExceptionType.unknown && (e.error is SocketException || e.error is TimeoutException));
   }
 
   Future<void> _pickPhoto() async {
@@ -274,7 +310,7 @@ class _MemberCreatePageState extends State<MemberCreatePage> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<Map<String, dynamic>>(
-                            value: _selectedUser,
+                            initialValue: _selectedUser,
                             decoration: const InputDecoration(labelText: "Kullanici"),
                             items: _users.map((user) {
                               final displayName = user["display_name"]?.toString() ?? user["email"]?.toString() ?? "Kullanici";

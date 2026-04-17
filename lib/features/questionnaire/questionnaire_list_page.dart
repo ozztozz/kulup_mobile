@@ -139,29 +139,124 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
                     children: [
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.assignment_outlined),
-                                const SizedBox(width: 8),
-                                Expanded(
+                      Text(
+                        "Plan Details",
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF12233F),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Takip edilen anketler ve cevap durumlari.",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        color: const Color(0xFF10213E),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Anket ozeti",
+                                      style: theme.textTheme.titleSmall?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      "${_rows.length} anket • $unansweredCount bekliyor",
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        side: const BorderSide(color: Colors.white70),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      onPressed: _load,
+                                      child: const Text("Yenile"),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
+                                child: Center(
                                   child: Text(
-                                    "Toplam ${_rows.length} satir, yanit bekleyen $unansweredCount satir",
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: theme.colorScheme.onSurface,
+                                    "$unansweredCount",
+                                    style: theme.textTheme.headlineSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _SummaryChip(
+                              label: "Toplam",
+                              value: _rows.length.toString(),
+                              icon: Icons.assignment_outlined,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _SummaryChip(
+                              label: "Bekliyor",
+                              value: unansweredCount.toString(),
+                              icon: Icons.pending_actions_outlined,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Text(
+                            "Activity",
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: _load,
+                            child: const Text("See all"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                         ..._rows.map((row) {
                           final member = Map<String, dynamic>.from(
                             (row["member"] as Map?) ?? <String, dynamic>{},
@@ -178,7 +273,12 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
                           );
 
                           return Card(
+                            elevation: 0,
                             margin: const EdgeInsets.only(bottom: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(color: theme.colorScheme.outlineVariant),
+                            ),
                             child: ListTile(
                               onTap: () => _openAnswerPage(row),
                               leading: Icon(
@@ -216,6 +316,49 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
                     ],
                   ),
                 ),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF12233F)),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
