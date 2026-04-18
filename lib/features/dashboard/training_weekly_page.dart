@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_footer_menu.dart";
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
 import "club_service.dart";
@@ -17,9 +18,13 @@ class TrainingWeeklyPage extends StatefulWidget {
   State<TrainingWeeklyPage> createState() => _TrainingWeeklyPageState();
 }
 
-class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
+class _TrainingWeeklyPageState extends State<TrainingWeeklyPage>
+  with SingleTickerProviderStateMixin {
   final ClubService _clubService = ClubService();
   final ScrollController _dayScrollController = ScrollController();
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseScale;
+  late final Animation<double> _pulseOpacity;
 
   bool _isLoading = true;
   String? _error;
@@ -49,11 +54,22 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 950),
+    )..repeat(reverse: true);
+    _pulseScale = Tween<double>(begin: 0.96, end: 1.06).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _pulseOpacity = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _loadTrainings();
   }
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _dayScrollController.dispose();
     super.dispose();
   }
@@ -253,21 +269,29 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
     return (bg: const Color(0xFFE8EBF1), fg: const Color(0xFF3F4653));
   }
 
-  void _scrollToSelectedDay() {
-    if (!_dayScrollController.hasClients) {
+  void _handleBottomTap(int index) {
+    if (index == 1) {
       return;
     }
 
-    const chipWidth = 56.0;
-    const chipGap = 10.0;
-    final offset = (_selectedDay - 1) * (chipWidth + chipGap);
-    final maxOffset = _dayScrollController.position.maxScrollExtent;
-    final targetOffset = offset.clamp(0.0, maxOffset);
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
 
-    _dayScrollController.animateTo(
-      targetOffset,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+    Widget? targetPage;
+    if (index == 2) {
+      targetPage = QuestionnaireListPage(onLogout: widget.onLogout);
+    } else if (index == 3) {
+      targetPage = PaymentListPage(onLogout: widget.onLogout);
+    }
+
+    if (targetPage == null) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => targetPage!),
     );
   }
 
@@ -360,7 +384,7 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
         onLogout: widget.onLogout,
       ),
       appBar: AppTopBar(
-        title: const Text("Training Weekly"),
+        title: const Text("Antrenman Programi"),
         actions: [
           IconButton(
             onPressed: _openCreateTraining,
@@ -380,6 +404,10 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: AppFooterMenu(
+        selectedIndex: 1,
+        onTap: _handleBottomTap,
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -398,48 +426,6 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 40,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () {
-                                  setState(() {
-                                    _selectedDay = _selectedDay == 1
-                                        ? 7
-                                        : _selectedDay - 1;
-                                  });
-                                },
-                                icon: const Icon(Icons.chevron_left_rounded),
-                              ),
-                            ),
-                            const Expanded(
-                              child: Text(
-                                "Timeline",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 28,
-                                  color: Color(0xFF2B2D33),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 40,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: _openCreateTraining,
-                                icon: const Icon(
-                                  Icons.add_circle_outline_rounded,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
                         Container(
                           decoration: BoxDecoration(
                             color: const Color(0xFFEFEFF1),
@@ -562,211 +548,48 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Sabah",
-                                style: TextStyle(
-                                  color: Color(0xFF5E6370),
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 14,
-                                ),
+                              _buildSessionHeader(
+                                label: "Sabah",
+                                icon: Icons.wb_sunny_outlined,
+                                count: morningItems.length,
                               ),
                               const SizedBox(height: 8),
                               if (morningItems.isEmpty)
-                                Container(
-                                  width: double.infinity,
-                                  margin: const EdgeInsets.only(bottom: 14),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF3D6),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: const Color(0xFFF0C97A),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    "Antrenman yok",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Color(0xFF8A6412),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                _buildEmptySessionCard(
+                                  bottomMargin: 14,
+                                  message: "Sabah antrenmani yok",
                                 )
                               else
                                 ...List.generate(morningItems.length, (index) {
                                   final item = morningItems[index];
-                                  final isCurrent = item["isCurrent"] == true;
-                                  final teamBg =
-                                      item["teamBg"] as Color? ??
-                                      const Color(0xFFE8EBF1);
-                                  final teamFg =
-                                      item["teamFg"] as Color? ??
-                                      const Color(0xFF3F4653);
-                                  return Container(
-                                    margin: EdgeInsets.only(
-                                      bottom: index == morningItems.length - 1
-                                          ? 14
-                                          : 10,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isCurrent
-                                          ? const Color(0xFF232A38)
-                                          : const Color(0xFFD5EBD4),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: teamBg,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            item["title"]?.toString() ??
-                                                "Antrenman",
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: teamFg,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          item["details"]?.toString() ?? "",
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: isCurrent
-                                                ? Colors.white70
-                                                : const Color(0xFF5E6B62),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  return _buildTrainingCard(
+                                    item: item,
+                                    bottomMargin:
+                                        index == morningItems.length - 1
+                                        ? 14
+                                        : 10,
                                   );
                                 }),
-                              const Text(
-                                "Aksam",
-                                style: TextStyle(
-                                  color: Color(0xFF5E6370),
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 14,
-                                ),
+                              _buildSessionHeader(
+                                label: "Aksam",
+                                icon: Icons.nights_stay_outlined,
+                                count: eveningItems.length,
                               ),
                               const SizedBox(height: 8),
                               if (eveningItems.isEmpty)
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF3D6),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: const Color(0xFFF0C97A),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    "Antrenman yok",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Color(0xFF8A6412),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                _buildEmptySessionCard(
+                                  bottomMargin: 0,
+                                  message: "Aksam antrenmani yok",
                                 )
                               else
                                 ...List.generate(eveningItems.length, (index) {
                                   final item = eveningItems[index];
-                                  final isCurrent = item["isCurrent"] == true;
-                                  final teamBg =
-                                      item["teamBg"] as Color? ??
-                                      const Color(0xFFE8EBF1);
-                                  final teamFg =
-                                      item["teamFg"] as Color? ??
-                                      const Color(0xFF3F4653);
-                                  return Container(
-                                    margin: EdgeInsets.only(
-                                      bottom: index == eveningItems.length - 1
-                                          ? 0
-                                          : 10,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isCurrent
-                                          ? const Color(0xFF232A38)
-                                          : const Color(0xFFD5EBD4),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: teamBg,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            item["title"]?.toString() ??
-                                                "Antrenman",
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: teamFg,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          item["details"]?.toString() ?? "",
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: isCurrent
-                                                ? Colors.white70
-                                                : const Color(0xFF5E6B62),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  return _buildTrainingCard(
+                                    item: item,
+                                    bottomMargin:
+                                        index == eveningItems.length - 1
+                                        ? 0
+                                        : 10,
                                   );
                                 }),
                             ],
@@ -778,5 +601,182 @@ class _TrainingWeeklyPageState extends State<TrainingWeeklyPage> {
               ),
             ),
     );
+  }
+
+  Widget _buildSessionHeader({
+    required String label,
+    required IconData icon,
+    required int count,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF5E6370)),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF4F5563),
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE5E9F0),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            "$count",
+            style: const TextStyle(
+              color: Color(0xFF545B68),
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptySessionCard({
+    required String message,
+    required double bottomMargin,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: bottomMargin),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3D6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF0C97A)),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Color(0xFF8A6412),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrainingCard({
+    required Map<String, dynamic> item,
+    required double bottomMargin,
+  }) {
+    final isCurrent = item["isCurrent"] == true;
+    final startMinutes = (item["start"] as int?) ?? 0;
+    final tone = _sessionTone(startMinutes);
+    final teamBg = item["teamBg"] as Color? ?? const Color(0xFFE8EBF1);
+    final teamFg = item["teamFg"] as Color? ?? const Color(0xFF3F4653);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: bottomMargin),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: isCurrent ? const Color(0xFF1F2B40) : tone.bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isCurrent ? const Color(0xFF1F2B40) : tone.border,
+        ),
+        boxShadow: isCurrent
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x12000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: teamBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  item["title"]?.toString() ?? "Antrenman",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: teamFg,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (isCurrent)
+                FadeTransition(
+                  opacity: _pulseOpacity,
+                  child: ScaleTransition(
+                    scale: _pulseScale,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2CC36B).withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        "Simdi",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              Icon(
+                Icons.schedule_rounded,
+                size: 15,
+                color: isCurrent ? Colors.white70 : const Color(0xFF6C756D),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  item["details"]?.toString() ?? "",
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isCurrent ? Colors.white70 : const Color(0xFF59655D),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  ({Color bg, Color border}) _sessionTone(int startMinutes) {
+    if (startMinutes < 12 * 60) {
+      return (bg: const Color(0xFFFFF8EE), border: const Color(0xFFEED8B7));
+    }
+    return (bg: const Color(0xFFF1F6FF), border: const Color(0xFFD0DEF3));
   }
 }

@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_footer_menu.dart";
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
 import "../../core/team_logo_avatar.dart";
@@ -82,6 +83,32 @@ class _PaymentListPageState extends State<PaymentListPage> {
     return text;
   }
 
+  void _handleBottomTap(int index) {
+    if (index == 3) {
+      return;
+    }
+
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
+    Widget? targetPage;
+    if (index == 1) {
+      targetPage = TrainingWeeklyPage(onLogout: widget.onLogout);
+    } else if (index == 2) {
+      targetPage = QuestionnaireListPage(onLogout: widget.onLogout);
+    }
+
+    if (targetPage == null) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => targetPage!),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -138,6 +165,10 @@ class _PaymentListPageState extends State<PaymentListPage> {
             tooltip: "Yenile",
           ),
         ],
+      ),
+      bottomNavigationBar: AppFooterMenu(
+        selectedIndex: 3,
+        onTap: _handleBottomTap,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

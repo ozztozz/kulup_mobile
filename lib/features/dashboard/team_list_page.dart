@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_footer_menu.dart";
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
 import "../../core/team_logo_avatar.dart";
@@ -62,33 +63,49 @@ class _TeamListPageState extends State<TeamListPage> {
     }
   }
 
-  String _monthLabel(int month) {
-    const months = <String>[
-      "Ocak",
-      "Subat",
-      "Mart",
-      "Nisan",
-      "Mayis",
-      "Haziran",
-      "Temmuz",
-      "Agustos",
-      "Eylul",
-      "Ekim",
-      "Kasim",
-      "Aralik",
-    ];
-    if (month < 1 || month > months.length) {
-      return "";
+  ({Color bg, Color fg}) _teamColorStyle(String teamName) {
+    final normalized = teamName.trim().toUpperCase();
+    if (normalized.contains("KIRMIZI")) {
+      return (bg: const Color(0xFFB3262D), fg: Colors.white);
     }
-    return months[month - 1];
+    if (normalized.contains("TURUNCU")) {
+      return (bg: const Color(0xFFCB6A14), fg: Colors.white);
+    }
+    if (normalized.contains("MAVI") || normalized.contains("BLUE")) {
+      return (bg: const Color(0xFF145EA8), fg: Colors.white);
+    }
+    if (normalized.contains("YESIL") || normalized.contains("GREEN")) {
+      return (bg: const Color(0xFF18864A), fg: Colors.white);
+    }
+    return (bg: const Color(0xFF12233F), fg: Colors.white);
+  }
+
+  void _handleBottomTap(int index) {
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
+    Widget? targetPage;
+    if (index == 1) {
+      targetPage = TrainingWeeklyPage(onLogout: widget.onLogout);
+    } else if (index == 2) {
+      targetPage = QuestionnaireListPage(onLogout: widget.onLogout);
+    } else if (index == 3) {
+      targetPage = PaymentListPage(onLogout: widget.onLogout);
+    }
+
+    if (targetPage == null) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => targetPage!),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final now = DateTime.now();
-    final monthLabel = _monthLabel(now.month);
-
     return Scaffold(
       drawer: AppNavDrawer(
         fullName: "Alpha",
@@ -141,6 +158,10 @@ class _TeamListPageState extends State<TeamListPage> {
           ),
         ],
       ),
+      bottomNavigationBar: AppFooterMenu(
+        selectedIndex: null,
+        onTap: _handleBottomTap,
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -178,125 +199,78 @@ class _TeamListPageState extends State<TeamListPage> {
                               }
 
                               final team = _teams[index - 1];
-                              final name = (team["name"]?.toString() ?? "-").toUpperCase();
-                              final description = team["description"]?.toString() ?? "";
-                              final memberCount =
-                                  (team["member_count"] as num?)?.toInt().toString() ?? "-";
+                              final name = (team["name"]?.toString() ?? "Takim").trim();
+                              final teamStyle = _teamColorStyle(name);
 
-                              return Card(
+                              return Container(
                                 margin: const EdgeInsets.only(bottom: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(28),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x1A000000),
+                                      blurRadius: 16,
+                                      offset: Offset(0, 8),
+                                    ),
+                                  ],
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Center(
-                                        child: Container(
-                                          decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Color(0x1F3A3D55),
-                                                blurRadius: 10,
-                                                offset: Offset(0, 6),
-                                              ),
-                                            ],
-                                          ),
-                                          child: TeamLogoAvatar(
+                                child: Material(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(28),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(28),
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => TeamDetailPage(
                                             team: team,
-                                            size: 82,
-                                            borderRadius: 41,
+                                            onLogout: widget.onLogout,
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Text(
-                                        name,
-                                        style: theme.textTheme.headlineSmall?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      if (description.isNotEmpty) ...[
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          description,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                      const SizedBox(height: 14),
-                                      Row(
+                                      );
+                                    },
+                                    child: SizedBox(
+                                      height: 210,
+                                      child: Column(
                                         children: [
                                           Expanded(
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.groups_2_outlined,
-                                                  size: 16,
-                                                  color: theme.colorScheme.onSurfaceVariant,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Text("$memberCount Uye"),
-                                              ],
+                                            child: Center(
+                                              child: TeamLogoAvatar(
+                                                team: team,
+                                                size: 108,
+                                                borderRadius: 22,
+                                              ),
                                             ),
                                           ),
-                                          Expanded(
-                                            child: Row(
-                                              mainAxisAlignment: MainAxisAlignment.end,
-                                              children: [
-                                                Icon(
-                                                  Icons.calendar_today_outlined,
-                                                  size: 16,
-                                                  color: theme.colorScheme.onSurfaceVariant,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Text("$monthLabel ${now.year}"),
-                                              ],
+                                          Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: teamStyle.bg,
+                                              borderRadius: const BorderRadius.only(
+                                                bottomLeft: Radius.circular(28),
+                                                bottomRight: Radius.circular(28),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: teamStyle.fg,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 20,
+                                                letterSpacing: 0.2,
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 10),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder: (_) => TeamDetailPage(
-                                                      team: team,
-                                                      onLogout: widget.onLogout,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              child: const Text("Detaylar"),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder: (_) => TeamDetailPage(
-                                                      team: team,
-                                                      onLogout: widget.onLogout,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              child: const Text("Uyeler"),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               );

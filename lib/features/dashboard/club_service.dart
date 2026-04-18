@@ -166,6 +166,24 @@ class ClubService {
     return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
   }
 
+  Future<Map<String, dynamic>> fetchQuestionnaireDetail({
+    required int questionnaireId,
+    int? memberId,
+  }) async {
+    final response = await ApiClient.dio.get<dynamic>(
+      "/questionnaires/$questionnaireId/detail/",
+      queryParameters: memberId == null
+          ? null
+          : <String, dynamic>{"member": memberId},
+    );
+
+    final data = response.data;
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+    return <String, dynamic>{};
+  }
+
   Future<void> submitQuestionnaireResponse({
     required int questionnaireId,
     required int memberId,

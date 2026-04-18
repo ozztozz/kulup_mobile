@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_footer_menu.dart";
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
 import "../../core/team_logo_avatar.dart";
@@ -75,6 +76,30 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
     }
   }
 
+  void _handleBottomTap(int index) {
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
+    Widget? targetPage;
+    if (index == 1) {
+      targetPage = TrainingWeeklyPage(onLogout: widget.onLogout);
+    } else if (index == 2) {
+      targetPage = QuestionnaireListPage(onLogout: widget.onLogout);
+    } else if (index == 3) {
+      targetPage = PaymentListPage(onLogout: widget.onLogout);
+    }
+
+    if (targetPage == null) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => targetPage!),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -138,6 +163,10 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
           ),
         ],
       ),
+      bottomNavigationBar: AppFooterMenu(
+        selectedIndex: null,
+        onTap: _handleBottomTap,
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -163,59 +192,7 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                         child: ListView(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                           children: [
-                            Row(
-                              children: [
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(14),
-                                  onTap: () => Navigator.of(context).maybePop(),
-                                  child: Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.18),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Icon(
-                                      Icons.arrow_back_ios_new,
-                                      size: 18,
-                                      color: theme.colorScheme.onPrimary,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        "PROFILE",
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          color: theme.colorScheme.onPrimary,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
-                                      Text(
-                                        teamName.toUpperCase(),
-                                        style: theme.textTheme.labelLarge?.copyWith(
-                                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.82),
-                                          letterSpacing: 0.8,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("Menü yakında eklenecek.")),
-                                    );
-                                  },
-                                  icon: Icon(Icons.more_vert, color: theme.colorScheme.onPrimary),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 6),
                             Stack(
                               clipBehavior: Clip.none,
                               alignment: Alignment.topCenter,
@@ -383,60 +360,87 @@ class _MemberListRow extends StatelessWidget {
     final fullName = "${member["name"] ?? ""} ${member["surname"] ?? ""}".trim();
     final school = member["school"]?.toString() ?? "-";
     final birthdate = member["birthdate"]?.toString() ?? "-";
+    final ageLabel = _ageLabelFromBirthdate(birthdate);
+    final isActive = member["is_active"] != false;
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        child: Row(
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: _MemberSmallAvatar(member: member),
+        title: Text(
+          fullName.isEmpty ? "Uye" : fullName,
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          "$school  •  $birthdate",
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _MemberSmallAvatar(member: member),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    fullName.isEmpty ? "Uye" : fullName,
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.school_outlined, size: 15, color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 5),
-                      Text(
-                        school,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 15,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        birthdate,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+            Text(
+              ageLabel,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? theme.colorScheme.tertiaryContainer
+                    : theme.colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                isActive ? "Aktif" : "Pasif",
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: isActive
+                      ? theme.colorScheme.onTertiaryContainer
+                      : theme.colorScheme.onSecondaryContainer,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _ageLabelFromBirthdate(String birthdate) {
+    if (birthdate.trim().isEmpty || birthdate == "-") {
+      return "-";
+    }
+
+    final parsed = DateTime.tryParse(birthdate);
+    if (parsed == null) {
+      return "-";
+    }
+
+    final now = DateTime.now();
+    var age = now.year - parsed.year;
+    final hadBirthdayThisYear =
+        (now.month > parsed.month) ||
+        (now.month == parsed.month && now.day >= parsed.day);
+    if (!hadBirthdayThisYear) {
+      age -= 1;
+    }
+
+    if (age < 0) {
+      return "-";
+    }
+    return "$age Yas";
   }
 }
 
@@ -458,8 +462,8 @@ class _MemberSmallAvatar extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Image.network(
           photoUrl,
-          width: 68,
-          height: 68,
+          width: 46,
+          height: 46,
           fit: BoxFit.cover,
           errorBuilder: (_, _, _) {
             return _MemberSmallAvatarFallback(initials: initials);
@@ -481,8 +485,8 @@ class _MemberSmallAvatarFallback extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      width: 68,
-      height: 68,
+      width: 46,
+      height: 46,
       decoration: BoxDecoration(
         color: theme.colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(14),
@@ -491,7 +495,7 @@ class _MemberSmallAvatarFallback extends StatelessWidget {
       child: Center(
         child: Text(
           initials.isEmpty ? "u" : initials,
-          style: theme.textTheme.headlineSmall?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.w800,
           ),
