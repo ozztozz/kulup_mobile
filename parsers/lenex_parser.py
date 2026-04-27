@@ -37,8 +37,8 @@ try:
     from .config import HTTP_TIMEOUT_LENEX, HTTP_HEADERS, STROKE_MAP
     from .m3_age import parse_birthdate
 except ImportError:
-    from kulup_mobile.parsers.config import HTTP_TIMEOUT_LENEX, HTTP_HEADERS, STROKE_MAP
-    from kulup_mobile.parsers.m3_age import parse_birthdate
+    from config import HTTP_TIMEOUT_LENEX, HTTP_HEADERS, STROKE_MAP
+    from m3_age import parse_birthdate
 
 logger = logging.getLogger(__name__)
 

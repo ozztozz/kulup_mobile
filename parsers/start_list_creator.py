@@ -2,12 +2,9 @@ import os
 import getpass
 import requests
 
-try:
-    from .html_parser import extract_start_list_pdf_urls, fetch_page
-    from .pdf_parser import parse_start_list_pdf_from_url
-except ImportError:
-    from kulup_mobile.parsers.html_parser import extract_start_list_pdf_urls, fetch_page
-    from kulup_mobile.parsers.pdf_parser import parse_start_list_pdf_from_url
+
+from html_parser import extract_start_list_pdf_urls, fetch_page, extract_race_meta
+from pdf_parser import parse_start_list_pdf_from_url
 
 
 
@@ -31,6 +28,14 @@ def get_start_list_from_pdf_url(event_url: str) -> list[dict]:
         start_list = parse_start_list_pdf_from_url(url)
         if start_list:
             start_list_total.extend(start_list)
+
+    race_meta= extract_race_meta(soup)
+    for entry in start_list_total:
+        entry["event_url"] = event_url
+        entry["event_title"] = race_meta["title"] 
+        entry["event_location"] = race_meta["location"] 
+        entry["event_date"] = race_meta["date"] 
+          
 
     return start_list_total
 

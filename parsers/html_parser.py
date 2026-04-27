@@ -25,7 +25,7 @@ from bs4 import BeautifulSoup
 try:
     from .config import HTTP_TIMEOUT_HTML, HTTP_HEADERS
 except ImportError:
-    from kulup_mobile.parsers.config import HTTP_TIMEOUT_HTML, HTTP_HEADERS
+    from config import HTTP_TIMEOUT_HTML, HTTP_HEADERS
 
 logger = logging.getLogger(__name__)
 

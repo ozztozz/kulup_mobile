@@ -24,7 +24,7 @@ Kullanım:
 try:
   from .config import COMPETITION_YEAR, YB_CENTURY_CUTOFF
 except ImportError:
-  from kulup_mobile.parsers.config import COMPETITION_YEAR, YB_CENTURY_CUTOFF
+  from config import COMPETITION_YEAR, YB_CENTURY_CUTOFF
 
 
 # ─────────────────────────────────────────────────────────────────────────────

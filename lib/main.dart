@@ -53,7 +53,7 @@ class KulupApp extends StatelessWidget {
     );
 
     return MaterialApp(
-      title: "Alpha",
+      title: "Alpha Academy",
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return HeroMode(

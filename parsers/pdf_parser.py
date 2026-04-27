@@ -37,9 +37,9 @@ try:
     from .html_parser import EventInfo
     from .lenex_parser import RawResult, _seconds_to_display
 except ImportError:
-    from kulup_mobile.parsers.config import HTTP_TIMEOUT_PDF, HTTP_HEADERS
-    from kulup_mobile.parsers.html_parser import EventInfo
-    from kulup_mobile.parsers.lenex_parser import RawResult, _seconds_to_display
+    from config import HTTP_TIMEOUT_PDF, HTTP_HEADERS
+    from html_parser import EventInfo
+    from lenex_parser import RawResult, _seconds_to_display
 
 logger = logging.getLogger(__name__)
 
@@ -531,12 +531,13 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
     if not line or len(line) < 6:
         return None
 
-    # Satır başındaki sıra/kulvar numaralarını at: "1 4 Ali..." → "Ali..."
+    # Satır başındaki sıra/kulvar numaralarını alir "
     start_line=re.match(r"^(\d+){1,8}(?=[A-ZÇĞİÖŞÜa-zçğışöü])", line)
     if start_line:
         start_line = start_line.group(0)
     else:
         start_line = ""
+    # Satır başındaki sıra/kulvar numaralarını at: "1 4 Ali..." → "Ali..."
     line = re.sub(r"^[\d\s]{1,8}(?=[A-ZÇĞİÖŞÜa-zçğışöü])", "", line).strip()
     # Tek harf öneki de temizle: "A Ali..." → "Ali..."
     line = re.sub(r"^[A-ZÇĞİÖŞÜa-zçğışöü]\s+(?=[A-ZÇĞİÖŞÜ])", "", line).strip()
@@ -562,7 +563,7 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
     except ValueError:
         return None
 
-    from kulup_mobile.parsers.config import YB_CENTURY_CUTOFF, COMPETITION_YEAR
+    from config import YB_CENTURY_CUTOFF, COMPETITION_YEAR
     birth_year = (2000 + yb_int) if yb_int <= YB_CENTURY_CUTOFF else (1900 + yb_int)
     age = COMPETITION_YEAR - birth_year
     if not (8 <= age <= 60):
