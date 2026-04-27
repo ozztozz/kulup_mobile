@@ -212,7 +212,7 @@ class _TrainingCreatePageState extends State<TrainingCreatePage> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<Map<String, dynamic>>(
-                            value: _selectedTeam,
+                            initialValue: _selectedTeam,
                             decoration: const InputDecoration(labelText: "Takim"),
                             items: _teams.map((team) {
                               return DropdownMenuItem<Map<String, dynamic>>(
@@ -234,7 +234,7 @@ class _TrainingCreatePageState extends State<TrainingCreatePage> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<int>(
-                            value: _dayOfWeek,
+                            initialValue: _dayOfWeek,
                             decoration: const InputDecoration(labelText: "Gun"),
                             items: _days.map((day) {
                               return DropdownMenuItem<int>(
@@ -290,7 +290,7 @@ class _TrainingCreatePageState extends State<TrainingCreatePage> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            value: _selectedLocation,
+                            initialValue: _selectedLocation,
                             decoration: const InputDecoration(labelText: "Lokasyon"),
                             items: _locations.map((location) {
                               return DropdownMenuItem<String>(
@@ -312,7 +312,7 @@ class _TrainingCreatePageState extends State<TrainingCreatePage> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<Map<String, dynamic>>(
-                            value: _selectedTrainer,
+                            initialValue: _selectedTrainer,
                             decoration: const InputDecoration(labelText: "Antrenor"),
                             items: _users.map((user) {
                               final displayName = user["display_name"]?.toString() ?? user["email"]?.toString() ?? "Kullanici";

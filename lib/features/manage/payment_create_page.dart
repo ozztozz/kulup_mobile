@@ -237,7 +237,7 @@ class _PaymentCreatePageState extends State<PaymentCreatePage> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<Map<String, dynamic>>(
-                            value: _selectedTeam,
+                            initialValue: _selectedTeam,
                             decoration: const InputDecoration(labelText: "Takim"),
                             items: _teams.map((team) {
                               return DropdownMenuItem<Map<String, dynamic>>(
@@ -260,7 +260,7 @@ class _PaymentCreatePageState extends State<PaymentCreatePage> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<Map<String, dynamic>>(
-                            value: _selectedMember,
+                            initialValue: _selectedMember,
                             decoration: const InputDecoration(labelText: "Uye"),
                             items: _members.map((member) {
                               final name = "${member["name"] ?? ""} ${member["surname"] ?? ""}".trim();

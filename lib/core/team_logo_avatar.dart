@@ -27,7 +27,7 @@ class TeamLogoAvatar extends StatelessWidget {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
+          errorBuilder: (_, _, _) {
             return _FallbackAvatar(
               size: size,
               borderRadius: borderRadius,
