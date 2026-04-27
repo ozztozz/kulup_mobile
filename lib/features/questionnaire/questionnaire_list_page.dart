@@ -1,11 +1,13 @@
 import "package:flutter/material.dart";
 
+import "../../core/app_footer_menu.dart";
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
 import "../dashboard/club_service.dart";
 import "../dashboard/team_list_page.dart";
 import "../payments/payment_list_page.dart";
 import "../dashboard/training_weekly_page.dart";
+import "questionnaire_detail_page.dart";
 import "questionnaire_response_page.dart";
 
 class QuestionnaireListPage extends StatefulWidget {
@@ -61,11 +63,6 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
   }
 
   Future<void> _openAnswerPage(Map<String, dynamic> row) async {
-    final hasResponded = row["has_responded"] == true;
-    if (hasResponded) {
-      return;
-    }
-
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => QuestionnaireResponsePage(
@@ -78,6 +75,48 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
     if (result == true) {
       await _load();
     }
+  }
+
+  Future<void> _openDetailPage(Map<String, dynamic> row) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => QuestionnaireDetailPage(
+          row: row,
+          allRows: _rows,
+          onLogout: widget.onLogout,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      await _load();
+    }
+  }
+
+  void _handleBottomTap(int index) {
+    if (index == 2) {
+      return;
+    }
+
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
+    Widget? targetPage;
+    if (index == 1) {
+      targetPage = TrainingWeeklyPage(onLogout: widget.onLogout);
+    } else if (index == 3) {
+      targetPage = PaymentListPage(onLogout: widget.onLogout);
+    }
+
+    if (targetPage == null) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => targetPage!),
+    );
   }
 
   @override
@@ -131,6 +170,10 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
             tooltip: "Refresh",
           ),
         ],
+      ),
+      bottomNavigationBar: AppFooterMenu(
+        selectedIndex: 2,
+        onTap: _handleBottomTap,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -280,7 +323,7 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
                               side: BorderSide(color: theme.colorScheme.outlineVariant),
                             ),
                             child: ListTile(
-                              onTap: () => _openAnswerPage(row),
+                              onTap: () => _openDetailPage(row),
                               leading: Icon(
                                 hasResponded ? Icons.check_circle : Icons.edit_note,
                                 color: hasResponded
@@ -303,12 +346,9 @@ class _QuestionnaireListPageState extends State<QuestionnaireListPage> {
                                         fontWeight: FontWeight.w700,
                                       ),
                                     )
-                                  : Text(
-                                      "Yanitla",
-                                      style: theme.textTheme.labelMedium?.copyWith(
-                                        color: theme.colorScheme.secondary,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  : TextButton(
+                                      onPressed: () => _openAnswerPage(row),
+                                      child: const Text("Yanitla"),
                                     ),
                             ),
                           );

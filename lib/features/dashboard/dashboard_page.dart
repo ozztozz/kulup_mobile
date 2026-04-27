@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 
 import "../../core/app_nav_drawer.dart";
+import "../../core/app_footer_menu.dart";
 import "../auth/auth_service.dart";
 import "../payments/payment_list_page.dart";
 import "../questionnaire/questionnaire_list_page.dart";
@@ -218,14 +219,6 @@ class _DashboardPageState extends State<DashboardPage> {
       fallback: "Sporcu",
     );
 
-    final totalPlanCount =
-        (_teams.length + _trainings.length + _questionnaires.length).toDouble();
-    final doneLikeCount = (_questionnaires.length + (_trainings.length * 0.5));
-    final completion = totalPlanCount == 0
-        ? 0.0
-        : (doneLikeCount / totalPlanCount).clamp(0.0, 1.0);
-    final completionText = "${(completion * 100).round()}%";
-
     final nearestTrainings = _nearestTrainings(_trainings);
 
     return Scaffold(
@@ -273,57 +266,9 @@ class _DashboardPageState extends State<DashboardPage> {
           await _logout();
         },
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2CC36B),
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TeamListPage(onLogout: widget.onLogout),
-            ),
-          );
-        },
-        child: const Icon(Icons.add, size: 28),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-          child: Container(
-            height: 68,
-            decoration: BoxDecoration(
-              color: const Color(0xFF12233F),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              children: [
-                _BottomNavItem(
-                  icon: Icons.home_filled,
-                  selected: _bottomIndex == 0,
-                  onTap: () => _handleBottomTap(0),
-                ),
-                _BottomNavItem(
-                  icon: Icons.calendar_month_outlined,
-                  selected: _bottomIndex == 1,
-                  onTap: () => _handleBottomTap(1),
-                ),
-                const SizedBox(width: 54),
-                _BottomNavItem(
-                  icon: Icons.assignment_turned_in_outlined,
-                  selected: _bottomIndex == 2,
-                  onTap: () => _handleBottomTap(2),
-                ),
-                _BottomNavItem(
-                  icon: Icons.payments_outlined,
-                  selected: _bottomIndex == 3,
-                  onTap: () => _handleBottomTap(3),
-                ),
-              ],
-            ),
-          ),
-        ),
+      bottomNavigationBar: AppFooterMenu(
+        selectedIndex: _bottomIndex,
+        onTap: _handleBottomTap,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -389,28 +334,24 @@ class _DashboardPageState extends State<DashboardPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Excellent, bugunku planin ilerliyor",
+                                "Alpha Academy'ye hos geldiniz!",
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 10),
-                              OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white70),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: () => _handleBottomTap(1),
-                                child: const Text("View Plan"),
-                              ),
                             ],
                           ),
                         ),
-                        _ProgressRing(value: completion, label: completionText),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            "assets/images/logo.jpeg",
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -435,8 +376,6 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: _QuickCategoryCard(
                         icon: Icons.groups_2_rounded,
                         title: "Takimlar",
-                        subtitle: "${_teams.length} plan",
-                        action: "",
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -452,8 +391,6 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: _QuickCategoryCard(
                         icon: Icons.fitness_center_rounded,
                         title: "Antrenman",
-                        subtitle: "${_trainings.length} plan",
-                        action: "",
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -529,54 +466,15 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class _ProgressRing extends StatelessWidget {
-  const _ProgressRing({required this.value, required this.label});
-
-  final double value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 72,
-      height: 72,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          CircularProgressIndicator(
-            value: value,
-            strokeWidth: 6,
-            backgroundColor: Colors.white24,
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-          Center(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _QuickCategoryCard extends StatelessWidget {
   const _QuickCategoryCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
-    required this.action,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
-  final String action;
   final VoidCallback onTap;
 
   @override
@@ -610,27 +508,6 @@ class _QuickCategoryCard extends StatelessWidget {
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    action,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF10213E),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.arrow_forward, size: 14),
-                ],
               ),
             ],
           ),
@@ -716,29 +593,3 @@ class _TaskTile extends StatelessWidget {
   }
 }
 
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: InkResponse(
-        onTap: onTap,
-        radius: 26,
-        child: Icon(
-          icon,
-          color: selected ? Colors.white : Colors.white70,
-          size: 22,
-        ),
-      ),
-    );
-  }
-}
