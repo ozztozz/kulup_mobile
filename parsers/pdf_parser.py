@@ -612,7 +612,8 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
         "entry_time_txt": entry_time_txt,
     }
 
-def _parse_start_list_series(line: str, event: EventInfo) -> dict | None:
+
+def _parse_start_list_series(line: str) -> dict | None:
     """
     "Yarış 10, Erkekler, 50m Serbest, 11 yaş" gibi başlıktan EventInfo çıkarır.
     """
@@ -630,6 +631,25 @@ def _parse_start_list_series(line: str, event: EventInfo) -> dict | None:
 
     return {"serie": serie, "series_total": series_total}
 
+def _parse_start_list_race_rank(line: str) -> dict | None:
+    """
+    "Yarış 10, Erkekler, 50m Serbest, 11 yaş" gibi başlıktan EventInfo çıkarır.
+    """
+    norm = _norm(line)
+
+    match = re.search(
+        r"yaris (\d+) ", norm, re.IGNORECASE
+    )
+    if not match:
+        return None
+    rank = match.group(1) or ""
+
+    return {"race_ranking": rank}
+
+
+
+
+
 
 def parse_start_list_pdf(pdf_content: bytes,
                          hint_event: EventInfo | None = None) -> list[dict]:
@@ -641,6 +661,7 @@ def parse_start_list_pdf(pdf_content: bytes,
     entries: list[dict] = []
     current_event: EventInfo | None = hint_event
     current_series: dict | None = None
+    current_rank: dict | None = None
 
     try:
         reader = PyPDF2.PdfReader(io.BytesIO(pdf_content))
@@ -667,15 +688,22 @@ def parse_start_list_pdf(pdf_content: bytes,
             if current_event is None:
                 continue
 
-            series=_parse_start_list_series(line, current_event)
+            series=_parse_start_list_series(line)
             if series:
                 current_series = series
                 continue
 
             if current_series is None:
                 continue
-        
-            entry = _parse_start_list_line(line, current_event,current_series)
+
+            race_rank=_parse_start_list_race_rank(line)
+            if race_rank:
+                current_rank = race_rank
+                continue
+
+            if current_rank is None:
+                continue
+            entry = _parse_start_list_line(line, current_event,current_series,current_rank)
             if entry:
                 entries.append(entry)
 

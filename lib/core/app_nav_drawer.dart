@@ -3,6 +3,7 @@ import "package:flutter/material.dart";
 enum AppNavSection {
   home,
   teams,
+  startlist,
   payments,
   trainings,
   questionnaires,
@@ -15,6 +16,7 @@ class AppNavDrawer extends StatelessWidget {
     required this.currentSection,
     required this.onHome,
     required this.onTeams,
+    this.onStartList,
     required this.onPayments,
     required this.onTrainings,
     required this.onQuestionnaires,
@@ -25,6 +27,7 @@ class AppNavDrawer extends StatelessWidget {
   final AppNavSection currentSection;
   final VoidCallback onHome;
   final VoidCallback onTeams;
+  final VoidCallback? onStartList;
   final VoidCallback onPayments;
   final VoidCallback onTrainings;
   final VoidCallback onQuestionnaires;
@@ -105,6 +108,13 @@ class AppNavDrawer extends StatelessWidget {
                     selected: currentSection == AppNavSection.teams,
                     onTap: onTeams,
                   ),
+                  if (onStartList != null)
+                    _MenuItemTile(
+                      icon: Icons.view_list_outlined,
+                      label: "Start List",
+                      selected: currentSection == AppNavSection.startlist,
+                      onTap: onStartList!,
+                    ),
                   _MenuItemTile(
                     icon: Icons.payments_outlined,
                     label: "Odemeler",

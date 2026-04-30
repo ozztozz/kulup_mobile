@@ -40,6 +40,7 @@ class EventInfo:
     distance: int    # 50, 100, 200, 400, 800, 1500
     stroke:   str    # 'Serbest', 'Sırtüstü', 'Kurbağalama', 'Kelebek', 'Karışık'
     series:  str = ""  # "Prelim", "Final", "Timed Final" gibi (isteğe bağlı)
+    race_ranking: int = 0  # Yarış sırası (ör: 1, 2, 3...) — isteğe bağlı
 
 @dataclass
 class RacePageInfo:
@@ -136,12 +137,14 @@ def _parse_event_text(text: str) -> EventInfo | None:
     gender   = _parse_gender(text)
     distance = _parse_distance(text)
     stroke   = _parse_stroke(text)
+    print(f"Parsed event text: '{text}' → gender={gender}, distance={distance}, stroke={stroke}")
 
     if distance and stroke:
         return EventInfo(
             gender   = gender or "M",  # belirsizse varsayılan
             distance = distance,
             stroke   = stroke,
+            race_ranking = 0,
         )
     return None
 
