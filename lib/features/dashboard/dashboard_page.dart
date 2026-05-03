@@ -5,6 +5,7 @@ import "../../core/app_footer_menu.dart";
 import "../auth/auth_service.dart";
 import "../payments/payment_list_page.dart";
 import "../questionnaire/questionnaire_list_page.dart";
+import "../startlist/event_selection_page.dart";
 import "club_service.dart";
 import "team_list_page.dart";
 import "training_weekly_page.dart";
@@ -245,6 +246,14 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           );
         },
+        onStartList: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => EventSelectionPage(onLogout: widget.onLogout),
+            ),
+          );
+        },
         onTrainings: () {
           Navigator.of(context).pop();
           Navigator.of(context).push(
@@ -381,6 +390,21 @@ class _DashboardPageState extends State<DashboardPage> {
                             MaterialPageRoute(
                               builder: (_) =>
                                   TeamListPage(onLogout: widget.onLogout),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _QuickCategoryCard(
+                        icon: Icons.view_list_rounded,
+                        title: "Start List",
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  EventSelectionPage(onLogout: widget.onLogout),
                             ),
                           );
                         },
@@ -592,4 +616,3 @@ class _TaskTile extends StatelessWidget {
     );
   }
 }
-

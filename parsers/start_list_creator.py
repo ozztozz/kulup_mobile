@@ -124,12 +124,12 @@ if __name__ == "__main__":
     # If token is not provided, ask for credentials interactively when missing.
     if not token:
         if not (email or username):
-            email = input("API login email: ").strip()
+            email = "tuncozden@gmail.com"
         if not password:
-            password = getpass.getpass("API login password: ")
+            password ="Test123."
 
     send_parsed_start_list_to_api(
-        event_url="https://canli.tyf.gov.tr/ankara/cs-1005146/",
+        event_url="https://canli.tyf.gov.tr/ankara/cs-1005292/",
         api_url="http://localhost:8000/api/results/start-list/import/",
         token=token,
         email=email,
