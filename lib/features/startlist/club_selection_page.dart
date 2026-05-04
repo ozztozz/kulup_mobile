@@ -3,7 +3,6 @@ import "package:flutter/material.dart";
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
 import "../auth/auth_service.dart";
-import "../dashboard/dashboard_page.dart";
 import "../dashboard/team_list_page.dart";
 import "../dashboard/training_weekly_page.dart";
 import "../payments/payment_list_page.dart";
@@ -224,7 +223,7 @@ class _ClubSelectionPageState extends State<ClubSelectionPage> {
         onLogout: _logout,
       ),
       appBar: AppTopBar(
-        title: const Text("Start List - Step 2: Select Club"),
+        title: const Text("Kulup Seçimi"),
         actions: [
           IconButton(
             onPressed: _loadClubs,
@@ -248,8 +247,8 @@ class _ClubSelectionPageState extends State<ClubSelectionPage> {
                       SizedBox(
                         height: constraints.maxHeight - 32,
                         child: _sectionCard(
-                          title: "2. Choose a Club",
-                          subtitle: "Choose a club for '$eventTitle'",
+                          title: "Kulüp  Seçiniz",
+                          subtitle: "$eventTitle",
                           child: _clubs.isEmpty
                               ? const Center(
                                   child: Text("Kulup bulunamadi."),

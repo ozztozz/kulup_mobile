@@ -321,8 +321,6 @@ def extract_race_meta(soup: BeautifulSoup) -> dict:
 
     return meta
 
-
-
 def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = None) -> dict | None:
     """
     StartList satırını ayrıştırır.
@@ -512,23 +510,11 @@ def get_start_list_from_pdf_url(event_url: str) -> list[dict]:
         entry["event_location"] = race_meta["location"] 
         entry["event_date"] = race_meta["date"] 
           
-<<<<<<< HEAD
-    print( f'Number of parsed entries: {len(start_list_total)}')
-=======
     print(len(start_list_total) , "adet start listesi kaydı çıkarıldı.")
->>>>>>> ddcabeb7a3dc217748d7e1dddb2aabad86b7afb6
     return start_list_total
 
 
 
-<<<<<<< HEAD
-
-def send_parsed_start_list_to_api(event_url: str):
-    auth_info = {
-         
-        "email": "tuncozden@gmail.com",
-        "password": "Test123.", }    
-=======
 def send_parsed_start_list_to_api(
     event_url: str,
     base_url: str | None = 'http://127.0.0.1:8000/',
@@ -551,14 +537,18 @@ def send_parsed_start_list_to_api(
     # API'ye gönderme mantığı burada eklenebilir
     # ...
     """
->>>>>>> ddcabeb7a3dc217748d7e1dddb2aabad86b7afb6
     parsed_entries = get_start_list_from_pdf_url(event_url)
+    
 
     payload = {
         "parsed_entries": parsed_entries,
-<<<<<<< HEAD
-        "replace_existing": False
+        "replace_existing": False,
+        "event_url": event_url,
     }
+    auth_info = {
+         
+        "email": "tuncozden@gmail.com",
+        "password": "Test123.", }  
     auth_resp = requests.post('http://localhost:8000/api/auth/token/',auth_info) 
     token = auth_resp.json().get("access")
     #print("Token:", token)
@@ -568,45 +558,6 @@ def send_parsed_start_list_to_api(
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    response = requests.post(api_url, json=payload, headers=headers)
-    print("API Response:", response.status_code)
-=======
-        "replace_existing": False,
-        "event_url": event_url,
-    }
-
-    print("API'ye gönderilecek payload:", len(payload["parsed_entries"]), "kayıt içeriyor.")
-    # Burada API'ye POST isteği gönderilebilir (örneğin requests.post) 
-    api_url = (base_url+'api/results/start-list/import/')
-    token_url = (base_url+'api/auth/token/')
-    print(f"API URL: {api_url}")
-    print(f"Token URL: {token_url}")
-    login_email ='tuncozden@gmail.com'
-    login_password ='Test123.'
-    if not token and login_email and login_password:
-        auth_errors = []
-        auth_resp = requests.post(token_url, json=auth_payload, timeout=timeout)
-        # Preferred for this project (AUTH_USER_MODEL.USERNAME_FIELD = 'email')
-        for auth_payload in (
-            {"email": login_email, "password": login_password}
-        ):
-            auth_resp = requests.post(token_url, json=auth_payload, timeout=timeout)
-            if auth_resp.ok:
-                token = auth_resp.json().get("access")
-                break
-            auth_errors.append(f"payload={auth_payload.keys()} status={auth_resp.status_code} body={auth_resp.text}")
-
-        if not token:
-            raise requests.HTTPError(
-                "JWT token could not be obtained. Check admin credentials. Details: "
-                + " | ".join(auth_errors),
-                response=auth_resp,
-            )
-
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    
 
     response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
     if response.status_code == 401:
@@ -617,5 +568,4 @@ def send_parsed_start_list_to_api(
     response.raise_for_status()
     return response.json()
 
->>>>>>> ddcabeb7a3dc217748d7e1dddb2aabad86b7afb6
 typer.run(send_parsed_start_list_to_api)

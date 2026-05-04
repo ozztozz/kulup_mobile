@@ -3,7 +3,6 @@ import "package:flutter/material.dart";
 import "../../core/app_nav_drawer.dart";
 import "../../core/app_top_bar.dart";
 import "../auth/auth_service.dart";
-import "../dashboard/dashboard_page.dart";
 import "../dashboard/team_list_page.dart";
 import "../dashboard/training_weekly_page.dart";
 import "../payments/payment_list_page.dart";
@@ -227,7 +226,7 @@ class _EventSelectionPageState extends State<EventSelectionPage> {
         onLogout: _logout,
       ),
       appBar: AppTopBar(
-        title: const Text("Start List - Step 1: Select Event"),
+        title: const Text("Etkinlik Seçimi"),
         actions: [
           IconButton(
             onPressed: _loadEvents,
@@ -251,8 +250,8 @@ class _EventSelectionPageState extends State<EventSelectionPage> {
                       SizedBox(
                         height: constraints.maxHeight - 32,
                         child: _sectionCard(
-                          title: "1. Choose an Event",
-                          subtitle: "Select an event to continue",
+                          title: "Etkinlik  Seçiniz",
+                          subtitle: "Bir etkinlik seçin",
                           child: _events.isEmpty
                               ? const Center(
                                   child: Text("Event bulunamadi."),

@@ -353,12 +353,15 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
                         ClipRRect(
+                          
                           borderRadius: BorderRadius.circular(12),
                           child: Image.asset(
-                            "assets/images/logo.jpeg",
+                            "assets/images/logo.png",
                             width: 72,
                             height: 72,
                             fit: BoxFit.cover,
+                            color: Colors.white,
+                            
                           ),
                         ),
                       ],

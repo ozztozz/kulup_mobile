@@ -279,7 +279,7 @@ class _StartListPageState extends State<StartListPage> {
         onLogout: _logout,
       ),
       appBar: AppTopBar(
-        title: const Text("Start List - Step 3: Items & Swimmers"),
+        title: Text("$clubName"),
         actions: [
           IconButton(
             onPressed: _loadItems,
@@ -311,7 +311,7 @@ class _StartListPageState extends State<StartListPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Event: $eventTitle",
+                              "$eventTitle", overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
@@ -319,7 +319,7 @@ class _StartListPageState extends State<StartListPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Club: $clubName",
+                              "$clubName",
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
@@ -333,9 +333,9 @@ class _StartListPageState extends State<StartListPage> {
                     SizedBox(
                       height: 600,
                       child: _sectionCard(
-                        title: "3. Event Groups with Swimmers",
+                        title: "Yarışlar",
                         subtitle:
-                            "Accordion style groups by gender, stroke, distance",
+                            "",
                         child: _items.isEmpty
                             ? const Center(
                                 child: Text("Brans bulunamadi."),
@@ -378,7 +378,7 @@ class _StartListPageState extends State<StartListPage> {
                                             RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(
-                                                  18),
+                                                  3),
                                         ),
                                         collapsedShape:
                                             RoundedRectangleBorder(
@@ -415,7 +415,7 @@ class _StartListPageState extends State<StartListPage> {
                                                   (entry) => Padding(
                                                     padding:
                                                         const EdgeInsets
-                                                            .only(top: 10),
+                                                            .only(top: 1),
                                                     child: Material(
                                                       color: Colors.white,
                                                       borderRadius:
@@ -428,7 +428,7 @@ class _StartListPageState extends State<StartListPage> {
                                                         child: Column(
                                                           crossAxisAlignment:
                                                               CrossAxisAlignment
-                                                                  .start,
+                                                                  .stretch,
                                                           children: [
                                                             Text(
                                                               entry[
@@ -444,8 +444,9 @@ class _StartListPageState extends State<StartListPage> {
                                                             const SizedBox(
                                                               height: 4,
                                                             ),
-                                                            Text(
-                                                              "Serie ${entry["serie"]?.toString() ?? "-"} • Start ${entry["start_line"]?.toString() ?? "-"} • ${entry["entry_time_txt"]?.toString() ?? "-"}",
+                                                            Text(                         
+
+                                                              "Seri ${entry["serie"]?.toString() ?? "-"} • ${entry["start_line"]?.toString() ?? "-"} • ${entry["entry_time_txt"]?.toString() ?? "—"} • Sonuç ${entry["time_txt"]?.toString() ?? "—"}",
                                                             ),
                                                           ],
                                                         ),
@@ -453,7 +454,7 @@ class _StartListPageState extends State<StartListPage> {
                                                     ),
                                                   ),
                                                 )
-                                                .toList(),
+                                                ,
                                         ],
                                       ),
                                     ),

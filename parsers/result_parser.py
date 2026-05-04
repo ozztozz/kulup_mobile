@@ -488,17 +488,21 @@ def parse_pdf_from_url(pdf_url: str, hint_event: EventInfo | None = None) -> lis
     if not pdf_content:
         return []
     result=parse_pdf(pdf_content, hint_event)
+
     #print(result[:4])  # PDF içeriğinin ilk 100 byte'ını yazdır (debug için)
-    return parse_pdf(pdf_content, hint_event)
+    return result
 
 
 
-def send_parsed_start_list_to_api(event_url: str):
+def send_parsed_result_list_to_api(pdf_url: str,event_url: str):
     auth_info = {
          
         "email": "tuncozden@gmail.com",
         "password": "Test123.", }    
-    parsed_entries = parse_pdf_from_url(event_url)
+    parsed_entries = parse_pdf_from_url(pdf_url)
+
+    for entry in parsed_entries:
+        entry["event_url"] = event_url  # Her entry'ye event_url ekle
 
     payload = {
         "parsed_entries": parsed_entries,
@@ -514,5 +518,46 @@ def send_parsed_start_list_to_api(event_url: str):
         headers["Authorization"] = f"Bearer {token}"
 
     response = requests.post(api_url, json=payload, headers=headers)
-    #print("API Response:", response.status_code, response.text)
-typer.run(send_parsed_start_list_to_api)
+    print("API Response:", response.status_code, response.text)
+
+def get_last_result_list_url(event_url: str) -> str | None:
+
+    payload = {
+        "event_url": event_url,
+    }
+    try:
+        resp = requests.post('http://localhost:8000/api/results/last-results/',data=payload)
+        last_result=resp.json()[0]["race_number"]
+    except Exception as e:
+        last_result=None
+    return last_result
+
+ 
+
+
+
+def parse_result_list_url(event_url: str) -> list[RawResult]:
+    """Verilen PDF URL'sinden sonuçları indirir ve ayrıştırır."""
+    # PDF URL'si genellikle event sayfasında <a> etiketi içinde bulunur, örn: <a href="...ResultList_1.pdf">Start List</a>
+    try:
+        r = requests.get(event_url, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT_HTML)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, 'html.parser')
+        pdf_links = soup.find_all('a', href=re.compile(r'ResultList.*\.pdf$', re.IGNORECASE))
+        start_list_urls = [link['href'] for link in pdf_links if link['href'].lower().endswith('.pdf')]
+    except Exception as e:
+        logger.warning("Event sayfası okunamadı '%s': %s", event_url, e)
+    
+    if not start_list_urls:
+        logger.warning("PDF bağlantısı bulunamadı '%s'", event_url)
+        return []
+    last_result=get_last_result_list_url(event_url)
+    print("Last result:", last_result)
+
+    for pdf_url in start_list_urls:
+        print("Parsing PDF URL:", pdf_url)
+        pass #send_parsed_result_list_to_api(pdf_url,event_url)
+
+
+
+typer.run(parse_result_list_url)
