@@ -126,7 +126,8 @@ class _StartListPageState extends State<StartListPage> {
 
   String _itemKey(Map<String, dynamic> item) {
     return [
-      item["gender"]?.toString() ?? "",
+      item["race_number"]?.toString() ?? "",
+      item["cinsiyet"]?.toString() ?? "",
       item["stroke"]?.toString() ?? "",
       item["distance"]?.toString() ?? "",
     ].join("|");
@@ -221,10 +222,11 @@ class _StartListPageState extends State<StartListPage> {
   }
 
   String _itemLabel(Map<String, dynamic> item) {
-    final gender = item["gender"]?.toString() ?? "";
+    final race_number = item["race_number"]?.toString() ?? "";
+    final gender = item["cinsiyet"]?.toString() ?? "";
     final stroke = item["stroke"]?.toString() ?? "";
     final distance = item["distance"]?.toString() ?? "";
-    return "${gender.isNotEmpty ? '$gender • ' : ''}$stroke ${distance}m".trim();
+    return "${gender.isNotEmpty ? '$race_number • $gender • ' : ''}$stroke ${distance}m".trim();
   }
 
   @override
@@ -446,7 +448,7 @@ class _StartListPageState extends State<StartListPage> {
                                                             ),
                                                             Text(                         
 
-                                                              "Seri ${entry["serie"]?.toString() ?? "-"} • ${entry["start_line"]?.toString() ?? "-"} • ${entry["entry_time_txt"]?.toString() ?? "—"} • Sonuç ${entry["time_txt"]?.toString() ?? "—"}",
+                                                              "Seri ${entry["serie"]?.toString() ?? "-"} • ${entry["start_line"]?.toString() ?? "-"} • Giriş ${entry["entry_time_txt"]?.toString() ?? "—"} • Sonuç ${entry["time_txt"]?.toString() ?? "—"}",
                                                             ),
                                                           ],
                                                         ),
