@@ -558,5 +558,5 @@ def parse_result_list_url(event_url: str) -> list[RawResult]:
 
 
 
-#typer.run(parse_result_list_url)
-parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005424/')
+typer.run(parse_result_list_url)
+#parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005424/')

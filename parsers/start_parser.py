@@ -339,10 +339,11 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
 
     # Satır başındaki sıra/kulvar numaralarını alir "
     start_line=re.match(r"^(\d+){1,8}(?=[\(A-ZÇĞİÖŞÜa-zçğışöü])", line)
+    print("Start line match:", start_line.group(0) if start_line else "None")       
     if start_line:
         start_line = start_line.group(0)
     else:
-        start_line = ""
+        start_line = 200
     # Satır başındaki sıra/kulvar numaralarını at: "1 4 Ali..." → "Ali..."
     line = re.sub(r"^[\d\s]{1,8}(?=[A-ZÇĞİÖŞÜa-zçğışöü])", "", line).strip()
     # Tek harf öneki de temizle: "A Ali..." → "Ali..."
@@ -416,7 +417,8 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
         if participant_type is None:
             participant_type = club_ptype.group(1).upper()
         club_raw = club_raw[club_ptype.end():].strip()
-
+    if start_line=="" and club_raw!='. -': 
+        pass
     return {
         "name_raw":       name_raw,
         "birth_year":     birth_year,
@@ -582,5 +584,5 @@ def send_parsed_start_list_to_api(
     return response.json()
 
 typer.run(send_parsed_start_list_to_api)
-#send_parsed_start_list_to_api(event_url='https://canli.tyf.gov.tr/ankara/cs-1005424/')
+#send_parsed_start_list_to_api(event_url='https://canli.tyf.gov.tr/ankara/cs-1004952/')
 
