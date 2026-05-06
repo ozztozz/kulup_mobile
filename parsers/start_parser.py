@@ -338,7 +338,7 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
         return None
 
     # Satır başındaki sıra/kulvar numaralarını alir "
-    start_line=re.match(r"^(\d+){1,8}(?=[A-ZÇĞİÖŞÜa-zçğışöü])", line)
+    start_line=re.match(r"^(\d+){1,8}(?=[\(A-ZÇĞİÖŞÜa-zçğışöü])", line)
     if start_line:
         start_line = start_line.group(0)
     else:
@@ -357,7 +357,15 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
         return None
     if _is_skip_line(line):
         return None
-
+    line = re.sub(r"^\d+?\.?\s*", "", line).strip()
+    _PTYPE_PATTERN = re.compile(r"^\((Fd|Tk|TD|Td|FD|TK)\)\s*", re.IGNORECASE)
+    ptype_match = _PTYPE_PATTERN.match(line)
+    participant_type: str | None = None
+    if ptype_match:
+        participant_type = ptype_match.group(1).upper()
+        line = line[ptype_match.end():].strip()
+        if not line or len(line) < 10:
+            return None
     # YB'yi bul (2 haneli sayı)
     yb_match = re.search(r"(?<!\d)(\d{2})(?!\d)", line)
     if not yb_match:
@@ -403,6 +411,11 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
     after_yb = re.sub(r"\s+\d+\s*$", "", after_yb).strip()   # sondaki puan/sıra rakamı
 
     club_raw = after_yb or "Bilinmiyor"
+    club_ptype = _PTYPE_PATTERN.match(club_raw) if club_raw else None
+    if club_ptype:
+        if participant_type is None:
+            participant_type = club_ptype.group(1).upper()
+        club_raw = club_raw[club_ptype.end():].strip()
 
     return {
         "name_raw":       name_raw,
@@ -569,3 +582,5 @@ def send_parsed_start_list_to_api(
     return response.json()
 
 typer.run(send_parsed_start_list_to_api)
+#send_parsed_start_list_to_api(event_url='https://canli.tyf.gov.tr/ankara/cs-1005424/')
+

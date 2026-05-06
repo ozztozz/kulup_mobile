@@ -214,9 +214,9 @@ def _parse_result_line(line: str, event: EventInfo) -> RawResult | None:
 
     # OCR artefakt: satır başındaki özel karakterleri temizle
     # Örnekler: "/ Ali Ulas Akkoyun", "$ Salih Yagiz Eyi", "[ Derin Kilic"
-    line = re.sub(r"^[^\w\u00C0-\u024F]+\s*", "", line).strip()
+    line = re.sub(r"^[^\w\u00C0-\u024F\()]+\s*", "", line).strip()
     # Başta tek rakam + boşluk (ama "1." zaten üstte handle edildi): "1 Nil" → "Nil"
-    line = re.sub(r"^\d+\s+(?=[A-ZÇĞİÖŞÜa-zçğışöüÀ-ÿ])", "", line).strip()
+    line = re.sub(r"^\d+\s+(?=[\(A-ZÇĞİÖŞÜa-zçğışöüÀ-ÿ])", "", line).strip()
     if not line or len(line) < 10:
         return None
 
@@ -518,7 +518,7 @@ def send_parsed_result_list_to_api(pdf_url: str,event_url: str):
         headers["Authorization"] = f"Bearer {token}"
 
     response = requests.post(api_url, json=payload, headers=headers)
-    print("API Response:", response.status_code, response.text)
+    print("API Response:", response.status_code,'parsed', len(parsed_entries) ,response.text)
 
 def get_last_result_list_url(event_url: str) -> str | None:
 
@@ -531,9 +531,6 @@ def get_last_result_list_url(event_url: str) -> str | None:
     except Exception as e:
         last_result=None
     return last_result
-
- 
-
 
 
 def parse_result_list_url(event_url: str) -> list[RawResult]:
@@ -556,8 +553,10 @@ def parse_result_list_url(event_url: str) -> list[RawResult]:
 
     for pdf_url in start_list_urls:
         print("Parsing PDF URL:", pdf_url)
-        pass #send_parsed_result_list_to_api(pdf_url,event_url)
+        pdf_url_path=event_url+pdf_url 
+        send_parsed_result_list_to_api(pdf_url=pdf_url_path,event_url=event_url)
 
 
 
-typer.run(parse_result_list_url)
+#typer.run(parse_result_list_url)
+parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005424/')
