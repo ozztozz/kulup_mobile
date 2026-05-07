@@ -549,7 +549,6 @@ def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> lis
         start_list_urls = [link['href'] for link in pdf_links if link['href'].lower().endswith('.pdf')]
         start_list_urls = list(set(start_list_urls))  # Benzersiz yap
         start_list_urls.sort()  # Sıralı işleme için
-        print("Found PDF URLs:", start_list_urls[:10])  # Bulunan PDF URL'lerini yazdır (debug için)
     except Exception as e:
         logger.warning("Event sayfası okunamadı '%s': %s", event_url, e)
     
@@ -563,7 +562,7 @@ def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> lis
     print("Last result:", last_result)
     end_of_results = len(start_list_urls)+1
     parsing_results=[f'ResultList_{result}.pdf' for result in range(last_result,end_of_results) ]
-    print("Parsing results:", parsing_results)
+    print("Parsing results:", parsing_results[:5])  # Sadece ilk 5 sonucu yazdır (debug için)
     
     for pdf_url in parsing_results:
         print("Parsing PDF URL:", pdf_url)
