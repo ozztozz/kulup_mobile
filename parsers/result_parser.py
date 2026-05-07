@@ -548,6 +548,8 @@ def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> lis
         pdf_links = soup.find_all('a', href=re.compile(r'ResultList.*\.pdf$', re.IGNORECASE))
         start_list_urls = [link['href'] for link in pdf_links if link['href'].lower().endswith('.pdf')]
         start_list_urls = list(set(start_list_urls))  # Benzersiz yap
+        start_list_urls.sort()  # Sıralı işleme için
+        print("Found PDF URLs:", start_list_urls[:10])  # Bulunan PDF URL'lerini yazdır (debug için)
     except Exception as e:
         logger.warning("Event sayfası okunamadı '%s': %s", event_url, e)
     
@@ -555,14 +557,15 @@ def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> lis
         logger.warning("PDF bağlantısı bulunamadı '%s'", event_url)
         return []
     last_result=get_last_result_list_url(event_url, base_url)
-    print("Last result:", last_result)
-    skipped_results=['ResultList_'+str(res)+'.pdf' for res in range(1,int(last_result+1))]
+    last_result=int(last_result) if last_result else 0
     if all_results:
-        skipped_results = []
-    print("Skipped results:", skipped_results)
-    for pdf_url in start_list_urls:
-        if pdf_url in skipped_results:
-            continue
+        last_result = 0  # Tüm sonuçları çekmek için sıfırla
+    print("Last result:", last_result)
+    end_of_results = len(start_list_urls)+1
+    parsing_results=[f'ResultList_{result}.pdf' for result in range(last_result,end_of_results) ]
+    print("Parsing results:", parsing_results)
+    
+    for pdf_url in parsing_results:
         print("Parsing PDF URL:", pdf_url)
         pdf_url_path=event_url+pdf_url 
         send_parsed_result_list_to_api(pdf_url=pdf_url_path,event_url=event_url,base_url=base_url)
