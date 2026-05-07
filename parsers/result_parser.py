@@ -494,7 +494,8 @@ def parse_pdf_from_url(pdf_url: str, hint_event: EventInfo | None = None) -> lis
 
 
 
-def send_parsed_result_list_to_api(pdf_url: str,event_url: str):
+def send_parsed_result_list_to_api(pdf_url: str,event_url: str,base_url: str):
+
     auth_info = {
          
         "email": "tuncozden@gmail.com",
@@ -508,10 +509,10 @@ def send_parsed_result_list_to_api(pdf_url: str,event_url: str):
         "parsed_entries": parsed_entries,
         "replace_existing": False
     }
-    auth_resp = requests.post('http://localhost:8000/api/auth/token/',auth_info) 
+    auth_resp = requests.post(base_url + '/api/auth/token/',auth_info) 
     token = auth_resp.json().get("access")
     #print("Token:", token)
-    base_url="http://localhost:8000"
+    #base_url="http://localhost:8000"
     api_url = base_url + "/api/results/results/import/"
     headers = {"Content-Type": "application/json"}
     if token:
@@ -520,20 +521,21 @@ def send_parsed_result_list_to_api(pdf_url: str,event_url: str):
     response = requests.post(api_url, json=payload, headers=headers)
     print("API Response:", response.status_code,'parsed', len(parsed_entries) ,response.text)
 
-def get_last_result_list_url(event_url: str) -> str | None:
+def get_last_result_list_url(event_url: str,base_url: str) -> str | None:
+
 
     payload = {
         "event_url": event_url,
     }
     try:
-        resp = requests.post('http://localhost:8000/api/results/last-results/',data=payload)
+        resp = requests.post(base_url + '/api/results/last-results/',data=payload)
         last_result=resp.json()[0]["race_number"]
     except Exception as e:
         last_result=None
     return last_result
 
 
-def parse_result_list_url(event_url: str) -> list[RawResult]:
+def parse_result_list_url(event_url: str,base_url: str ) -> list[RawResult]:
     """Verilen PDF URL'sinden sonuçları indirir ve ayrıştırır."""
     # PDF URL'si genellikle event sayfasında <a> etiketi içinde bulunur, örn: <a href="...ResultList_1.pdf">Start List</a>
     try:
@@ -542,19 +544,20 @@ def parse_result_list_url(event_url: str) -> list[RawResult]:
         soup = BeautifulSoup(r.text, 'html.parser')
         pdf_links = soup.find_all('a', href=re.compile(r'ResultList.*\.pdf$', re.IGNORECASE))
         start_list_urls = [link['href'] for link in pdf_links if link['href'].lower().endswith('.pdf')]
+        start_list_urls = list(set(start_list_urls))  # Benzersiz yap
     except Exception as e:
         logger.warning("Event sayfası okunamadı '%s': %s", event_url, e)
     
     if not start_list_urls:
         logger.warning("PDF bağlantısı bulunamadı '%s'", event_url)
         return []
-    last_result=get_last_result_list_url(event_url)
+    last_result=get_last_result_list_url(event_url, base_url)
     print("Last result:", last_result)
 
     for pdf_url in start_list_urls:
         print("Parsing PDF URL:", pdf_url)
         pdf_url_path=event_url+pdf_url 
-        send_parsed_result_list_to_api(pdf_url=pdf_url_path,event_url=event_url)
+        send_parsed_result_list_to_api(pdf_url=pdf_url_path,event_url=event_url,base_url=base_url)
 
 
 

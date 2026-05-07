@@ -339,10 +339,11 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
 
     # Satır başındaki sıra/kulvar numaralarını alir "
     start_line=re.match(r"^(\d+){1,8}(?=[\(A-ZÇĞİÖŞÜa-zçğışöü])", line)
-    print("Start line match:", start_line.group(0) if start_line else "None")       
+    #print("Start line match:", start_line.group(0) if start_line else "None")       
     if start_line:
         start_line = start_line.group(0)
     else:
+        #print("Start line not found:",line)
         start_line = 200
     # Satır başındaki sıra/kulvar numaralarını at: "1 4 Ali..." → "Ali..."
     line = re.sub(r"^[\d\s]{1,8}(?=[A-ZÇĞİÖŞÜa-zçğışöü])", "", line).strip()
@@ -417,8 +418,12 @@ def _parse_start_list_line(line: str, event: EventInfo, series: dict | None = No
         if participant_type is None:
             participant_type = club_ptype.group(1).upper()
         club_raw = club_raw[club_ptype.end():].strip()
-    if start_line=="" and club_raw!='. -': 
-        pass
+
+    _cont_club_raw = re.sub(r"[^A-ZÇĞİÖŞÜa-zçğışöü\s]", "", club_raw).strip()  # kulüp adının 2 karakterden az harf içermemesi için kontrol
+    if not _cont_club_raw or len(_cont_club_raw) < 2:
+        return None
+    if start_line==200:
+        print("Parsed line without start line:", line)
     return {
         "name_raw":       name_raw,
         "birth_year":     birth_year,
@@ -508,6 +513,7 @@ def get_start_list_from_pdf_url(event_url: str) -> list[dict]:
         return []
 
     start_list_urls = extract_start_list_pdf_urls(soup, event_url)
+    start_list_urls = list(set(start_list_urls))  # Benzersiz yap
     if not start_list_urls:
         print("Start listesi PDF URL'si bulunamadı.")
         return []
@@ -532,17 +538,12 @@ def get_start_list_from_pdf_url(event_url: str) -> list[dict]:
 
 def send_parsed_start_list_to_api(
     event_url: str,
-    base_url: str | None = 'http://127.0.0.1:8000/',
-    token: str | None = None,   
-    username: str | None = None,
-    email: str | None = None,
-    password: str | None = None,
-    replace_existing: bool = False,
-    timeout: int = 30,
+    base_url: str,
+    timeout: int = 30
 ):
     """
     Event URL'den start list verisini parse eder ve API'ye gönderir.
-
+base_url="http://localhost:8000"
     API payload:
       {
         "parsed_entries": [...],
@@ -564,10 +565,10 @@ def send_parsed_start_list_to_api(
          
         "email": "tuncozden@gmail.com",
         "password": "Test123.", }  
-    auth_resp = requests.post('http://localhost:8000/api/auth/token/',auth_info) 
+    auth_resp = requests.post(base_url + '/api/auth/token/',auth_info) 
     token = auth_resp.json().get("access")
     #print("Token:", token)
-    base_url="http://localhost:8000"
+    
     api_url = base_url + "/api/results/start-list/import/"
     headers = {"Content-Type": "application/json"}
     if token:
