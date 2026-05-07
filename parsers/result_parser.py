@@ -3,6 +3,9 @@ import re
 import typer
 import logging
 from dataclasses import dataclass
+import schedule
+import time
+from typing import Annotated
 
 import PyPDF2
 import requests
@@ -535,7 +538,7 @@ def get_last_result_list_url(event_url: str,base_url: str) -> str | None:
     return last_result
 
 
-def parse_result_list_url(event_url: str,base_url: str ) -> list[RawResult]:
+def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> list[RawResult]:
     """Verilen PDF URL'sinden sonuçları indirir ve ayrıştırır."""
     # PDF URL'si genellikle event sayfasında <a> etiketi içinde bulunur, örn: <a href="...ResultList_1.pdf">Start List</a>
     try:
@@ -553,13 +556,41 @@ def parse_result_list_url(event_url: str,base_url: str ) -> list[RawResult]:
         return []
     last_result=get_last_result_list_url(event_url, base_url)
     print("Last result:", last_result)
-
+    skipped_results=['ResultList_'+str(res)+'.pdf' for res in range(1,int(last_result+1))]
+    if all_results:
+        skipped_results = []
+    print("Skipped results:", skipped_results)
     for pdf_url in start_list_urls:
+        if pdf_url in skipped_results:
+            continue
         print("Parsing PDF URL:", pdf_url)
         pdf_url_path=event_url+pdf_url 
         send_parsed_result_list_to_api(pdf_url=pdf_url_path,event_url=event_url,base_url=base_url)
 
 
 
-typer.run(parse_result_list_url)
+
+app = typer.Typer()
+
+@app.command()
+def başlat(
+    event_url: Annotated[str, typer.Option(help="Kime hitap edilecek?")],
+    base_url: Annotated[str, typer.Option(help="Temel URL?")] = "http://localhost:8000",
+    saniye: Annotated[int, typer.Option(help="Kaç saniyede bir çalışsın?")] = 60,
+    all_results: Annotated[bool, typer.Option(help="Tüm sonuçları mı çekelim? (default: False)")] = False
+):
+    # Parametreleri .do() içinde fonksiyon isminden sonra virgülle ekliyoruz
+    # gorev_fonksiyonu(isim, 1) şeklinde parametreleri paslıyoruz
+    schedule.every(saniye).seconds.do(parse_result_list_url, event_url=event_url, base_url=base_url,all_results=all_results)
+
+    typer.echo(f"{event_url} için zamanlayıcı {saniye} saniyede bir çalışacak şekilde kuruldu.")
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+if __name__ == "__main__":
+    app()
+
+#typer.run(parse_result_list_url)
 #parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005424/')
