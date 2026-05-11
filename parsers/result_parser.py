@@ -1,5 +1,8 @@
 
+from fileinput import filename
 import re
+from pdf2image import convert_from_path
+import pytesseract
 import typer
 import logging
 from dataclasses import dataclass
@@ -11,6 +14,7 @@ import PyPDF2
 import requests
 from bs4 import BeautifulSoup
 import io
+import pymupdf
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +81,8 @@ _SKIP_PATTERNS = re.compile(
 
 # Zaman kalıpları (sonuç satırı tespiti için)
 _TIME_PATTERN = re.compile(
-    r"\b(\d{1,2}:\d{2}\.\d{2}|\d{2}\.\d{2})\b"
+    #r"\b(\d{1,2}:\d{2}\.\d{2}|\d{2}\.\d{2})\b",
+    r"(\d{1,2}:\d{2}\.\d{2}|\d{2}\.\d{2})",
 )
 _MIN_REASONABLE_TIMES: dict[tuple[str, int], float] = {
     ("Serbest",     50):  22.0,
@@ -124,8 +129,10 @@ def _parse_pdf_header(line: str, event_url: str | None = None) -> EventInfo | No
     """
     norm = _norm(line)
     match = re.search(
-        r"yaris\s*(\d+)[,\s]*(erkekler|kizlar|bayanlar|oglanlar)?[,\s]*"
-        r"(\d+)\s*m[,\s]*(serbest|sirtüstü|sirtustu|kurbagalama|kelebek|karisik)",
+        r"yaris\s*(\d+[sSoO]?\d*)[,\s]*"  # Yarış no: '4', '4s' veya '4s1' yakalar
+        r"(erkekler|kizlar|bayanlar|oglanlar)?[,\s]*" 
+        r"([\d\w]+)\s*m[,\s]*"          # Mesafe: '50m' veya hatalı '5S0m' yakalar
+        r"(serbest|sirtüstü|sirtustu|kurbagalama|kelebek|karisik)",
         norm, re.IGNORECASE
     )
     if not match:
@@ -133,7 +140,10 @@ def _parse_pdf_header(line: str, event_url: str | None = None) -> EventInfo | No
 
     race_number = match.group(1) or ""
     gender_raw = match.group(2) or ""
-    distance   = int(match.group(3))
+    distance   = match.group(3)
+    distance   = re.sub(r"[^\d]", "", distance)  # '5S0' → '50', '100' → '100'
+    distance   = int(distance)
+    distance   = distance*10 if distance < 50 else distance
     stroke_raw = match.group(4)
 
     if distance not in _VALID_DISTANCES:
@@ -293,8 +303,17 @@ def _parse_result_line(line: str, event: EventInfo) -> RawResult | None:
 
     club_raw = before_time[yb_end:].strip()
 
+    # OCR artefakt: kulüp başındaki çöpleri temizle
+    # Örnek: "A Alanur Eroglu" → "Alanur Eroglu", "E Efe Emir Erturk" → "Efe Emir Erturk"
+    # Büyük veya küçük harf tek öneki: "A Alanur" / "k Kemal" → asıl isme geç
+    club_raw = re.sub(r"^[\(\)]\s+(?=[A-ZÇĞİÖŞÜ])", "", club_raw).strip()
+    club_raw = re.sub(r"^[\(A-ZÇĞİÖŞÜa-zçğışöü\—]{,3}\s?+(?=[A-ZÇĞİÖŞÜ])", "", club_raw).strip()
+    if club_raw.startswith("Fatih Kara"):
+        club_raw = "Fatih Karakurt Alpha Academy Spor Kulübü"
     # Kulüp başındaki (Tk)/(Fd)/(TD) önekini de soy (bazı formatlarda YB'den sonra gelir)
     # Örnek: "13 (Tk) Ted Ankara Koleji..." → club_raw = "(Tk) Ted Ankara Koleji..."
+    if "alpha academy" in club_raw.lower():
+        club_raw = "Fatih Karakurt Alpha Academy Spor Kulübü"
     club_ptype = _PTYPE_PATTERN.match(club_raw) if club_raw else None
     if club_ptype:
         if participant_type is None:
@@ -432,10 +451,36 @@ def parse_pdf(pdf_content: bytes, hint_event: EventInfo | None = None) -> list[R
     except Exception as e:
         logger.error("PDF okunamadı: %s", e)
         return []
+    import os
+    from PIL import Image
+    from pdf2image import convert_from_path
+    import pytesseract
+
+    with open('downloaded_file.pdf', 'wb') as f:
+        f.write(pdf_content)
+
+    #doc = convert_from_path(r'C:/Users/OZDEN/Desktop/kulup/kulup_mobile/parsers/ResultList_1.pdf', 300 ,poppler_path=r'C:/Users/OZDEN/Desktop/kulup/kulup_mobile/parsers/poppler-26.02.0/Library/bin')
+    doc = convert_from_path('downloaded_file.pdf', 300 ,poppler_path=r'C:/Users/OZDEN/Desktop/kulup/kulup_mobile/parsers/poppler-26.02.0/Library/bin')
+
+  
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+    full_text = ''
+    for page_number, page_data in enumerate(doc):
+        text = pytesseract.image_to_string(page_data, lang='tur',config="--psm 6")
+        full_text += text
+
+        print("Page # {} - {}".format(str(page_number),text[:100]))
+
+    
+
 
     for page_num, page in enumerate(reader.pages):
         try:
             text = page.extract_text() or ""
+            if not text.strip():
+                text = full_text
+
         except Exception as e:
             logger.warning("PDF sayfa %d okunamadı: %s", page_num + 1, e)
             continue
@@ -566,7 +611,8 @@ def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> lis
     
     for pdf_url in parsing_results:
         print("Parsing PDF URL:", pdf_url)
-        pdf_url_path=event_url+pdf_url 
+        pdf_url_path=event_url+'canli/' + pdf_url 
+        #pdf_url_path="https://canli.tyf.gov.tr/ankara/cs-1005457/canli/ResultList_14.pdf"
         send_parsed_result_list_to_api(pdf_url=pdf_url_path,event_url=event_url,base_url=base_url)
 
 
@@ -575,6 +621,7 @@ def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> lis
 app = typer.Typer()
 
 @app.command()
+
 def başlat(
     event_url: Annotated[str, typer.Option(help="Kime hitap edilecek?")],
     base_url: Annotated[str, typer.Option(help="Temel URL?")] = "http://localhost:8000",
@@ -591,8 +638,8 @@ def başlat(
         schedule.run_pending()
         time.sleep(1)
 
-if __name__ == "__main__":
-    app()
+#if __name__ == "__main__":
+#    app()
 
 #typer.run(parse_result_list_url)
-#parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005424/')
+parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005457/',base_url="https://alphaacademy.pythonanywhere.com/",all_results=True)
