@@ -300,6 +300,7 @@ def _parse_result_line(line: str, event: EventInfo) -> RawResult | None:
     # Örnekler: "A Alanur Eroglu" → "Alanur Eroglu", "E Efe Emir Erturk" → "Efe Emir Erturk"
     # Büyük veya küçük harf tek öneki: "A Alanur" / "k Kemal" → asıl isme geç
     name_raw = re.sub(r"^[A-ZÇĞİÖŞÜa-zçğışöü]\s+(?=[A-ZÇĞİÖŞÜ])", "", name_raw).strip()
+    name_raw=name_raw.replace("Omer", "Ömer")
 
     club_raw = before_time[yb_end:].strip()
 
@@ -603,10 +604,10 @@ def parse_result_list_url(event_url: str,base_url: str,all_results: bool) -> lis
     last_result=get_last_result_list_url(event_url, base_url)
     last_result=int(last_result) if last_result else 0
     if all_results:
-        last_result = 0  # Tüm sonuçları çekmek için sıfırla
+        last_result = 18  # Tüm sonuçları çekmek için sıfırla
     print("Last result:", last_result)
     end_of_results = len(start_list_urls)+1
-    parsing_results=[f'ResultList_{result}.pdf' for result in range(last_result,end_of_results) ]
+    parsing_results=[f'ResultList_{result}.pdf' for result in range(last_result+1,end_of_results) ]
     print("Parsing results:", parsing_results[:5])  # Sadece ilk 5 sonucu yazdır (debug için)
     
     for pdf_url in parsing_results:
@@ -638,8 +639,8 @@ def başlat(
         schedule.run_pending()
         time.sleep(1)
 
-#if __name__ == "__main__":
-#    app()
+if __name__ == "__main__":
+    app()
 
-#typer.run(parse_result_list_url)
-parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005457/',base_url="https://alphaacademy.pythonanywhere.com/",all_results=True)
+typer.run(parse_result_list_url)
+#parse_result_list_url(event_url='https://canli.tyf.gov.tr/ankara/cs-1005457/',base_url="https://alphaacademy.pythonanywhere.com/",all_results=True)
